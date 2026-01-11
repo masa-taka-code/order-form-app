@@ -842,35 +842,74 @@ textarea {
   }
 }
 
-@media (max-width: 768px) {
+/* モバイル・タブレット向けレスポンシブ (1024px以下) */
+@media (max-width: 1024px) {
   html {
-    font-size: 14px;
+    font-size: 15px;
   }
 
+  .app-container {
+    padding: 0 16px 120px;
+  }
+
+  /* フォームを1列にして見やすく */
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
 
+  /* ラジオボタン・チェックボックスを押しやすく */
+  .radio-group,
+  .checkbox-group {
+    gap: 12px;
+  }
+
+  .radio-label,
+  .checkbox-label {
+    flex: 1;
+    /* 横幅いっぱいに広げる */
+    justify-content: center;
+    padding: 14px;
+    min-width: 100px;
+    /* 最小幅を確保 */
+  }
+
+  /* 支払い方法・部門も2列〜3列で見やすく */
   .payment-methods,
   .departments {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   }
 
+  /* 商品行のデザイン調整 */
   .product-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
   }
 
-  .product-row input[type="number"] {
+  .product-row .product-name {
     width: 100%;
+    /* 商品名は1行使う */
+    order: 1;
   }
 
-  .remove-product-btn {
-    width: 100%;
+  .product-row .product-quantity,
+  .product-row .product-price {
+    flex: 1;
+    /* 個数と金額で幅を分け合う */
+    order: 2;
+  }
+
+  .product-row .remove-product-btn {
+    width: 40px;
+    height: 48px;
+    /* 高さを入力欄に合わせる */
     border-radius: var(--radius-sm);
-    height: 40px;
+    order: 3;
   }
 
+  /* ヘッダー・ボタン調整 */
   .list-header {
     flex-direction: column;
   }
@@ -885,73 +924,6 @@ textarea {
 
   .order-card-actions .btn {
     width: 100%;
-  }
-}
-
-/* iPad向け調整 (768px - 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
-  html {
-    font-size: 15px;
-  }
-
-  .app-container {
-    max-width: 720px;
-    padding: 0 24px 100px;
-  }
-
-  /* フォームグリッドを調整 */
-  .form-grid {
-    gap: 20px;
-  }
-
-  /* ラジオボタンを横並びに収める */
-  .radio-group {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 12px;
-  }
-
-  .radio-label {
-    flex: 1;
-    justify-content: center;
-    padding: 12px 14px;
-    min-width: 0;
-  }
-
-  .radio-label span {
-    white-space: nowrap;
-  }
-
-  /* 支払い方法と部門のグリッド調整 */
-  .payment-methods {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-
-  .departments {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-  }
-
-  /* チェックボックスラベル調整 */
-  .checkbox-label {
-    justify-content: center;
-    padding: 12px 10px;
-  }
-
-  /* 商品行の調整 */
-  .product-row {
-    grid-template-columns: 1fr 100px 120px 50px;
-    gap: 12px;
     padding: 14px;
-  }
-
-  /* ボタンサイズ調整 */
-  .btn {
-    padding: 16px 32px;
-  }
-
-  .nav-tab {
-    padding: 16px 24px;
   }
 }
