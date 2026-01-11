@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>注文書管理アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- ナビゲーションタブ -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="input">新規入力</button>
+      <button class="nav-tab" data-tab="list">一覧</button>
+      <button class="nav-tab" data-tab="settings">設定</button>
+    </nav>
+
+    <!-- 入力タブ -->
+    <div id="input-tab" class="tab-content active">
+      <form id="order-form" class="order-form">
+        <!-- 受付情報 -->
+        <section class="form-section">
+          <h2 class="section-title">受付情報</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="reception-date">受付日</label>
+              <input type="date" id="reception-date" name="receptionDate" required>
+            </div>
+            <div class="form-group">
+              <label>受付方法</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="receptionMethod" value="来店" checked>
+                  <span>来店</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="receptionMethod" value="電話">
+                  <span>電話</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="staff-name">受注者</label>
+              <input type="text" id="staff-name" name="staffName" placeholder="担当者名">
+            </div>
+            <div class="form-group">
+              <label for="order-datetime">ご注文日時</label>
+              <input type="datetime-local" id="order-datetime" name="orderDatetime">
+            </div>
+            <div class="form-group">
+              <label>受け取り方法</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="deliveryMethod" value="配達" checked>
+                  <span>配達</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="deliveryMethod" value="来店">
+                  <span>来店</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- お客様情報 -->
+        <section class="form-section">
+          <h2 class="section-title">お客様情報</h2>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="customer-name">お客さま氏名</label>
+              <input type="text" id="customer-name" name="customerName" placeholder="お客様のお名前" required>
+            </div>
+            <div class="form-group">
+              <label for="phone-number">お電話番号</label>
+              <input type="tel" id="phone-number" name="phoneNumber" placeholder="090-1234-5678">
+            </div>
+            <div class="form-group full-width">
+              <label for="delivery-address">配達先住所</label>
+              <input type="text" id="delivery-address" name="deliveryAddress" placeholder="配達先の住所">
+            </div>
+          </div>
+        </section>
+
+        <!-- 注文商品 -->
+        <section class="form-section">
+          <h2 class="section-title">ご注文品</h2>
+          <div class="form-group">
+            <label>税表示</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="taxType" value="税込" checked>
+                <span>税込</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="taxType" value="税抜">
+                <span>税抜</span>
+              </label>
+            </div>
+          </div>
+          <div id="products-container" class="products-container">
+            <!-- 商品行はJavaScriptで動的に追加 -->
+          </div>
+          <button type="button" id="add-product-btn" class="add-product-btn">
+            ＋ 商品を追加
+          </button>
+          <div class="total-display">
+            <span>合計金額:</span>
+            <span id="total-amount">¥0</span>
+          </div>
+        </section>
+
+        <!-- 詳細・備考 -->
+        <section class="form-section">
+          <h2 class="section-title">詳細・備考</h2>
+          <div class="form-group full-width">
+            <textarea id="notes" name="notes" rows="4" placeholder="詳細や備考を入力"></textarea>
+          </div>
+        </section>
+
+        <!-- 支払い・請求 -->
+        <section class="form-section">
+          <h2 class="section-title">支払い・請求</h2>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>支払方法</label>
+              <div class="radio-group payment-methods">
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="代金" checked>
+                  <span>代金</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="代スミ">
+                  <span>代スミ</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="未収">
+                  <span>未収</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="売掛">
+                  <span>売掛</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="代引">
+                  <span>代引</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="paymentMethod" value="納品請求書">
+                  <span>納品請求書</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group full-width">
+              <label for="billing-name">ご請求先・領収書宛名</label>
+              <input type="text" id="billing-name" name="billingName" placeholder="請求先または領収書の宛名">
+            </div>
+          </div>
+        </section>
+
+        <!-- 部門 -->
+        <section class="form-section">
+          <h2 class="section-title">部門</h2>
+          <div class="checkbox-group departments">
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="青果">
+              <span>青果</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="精肉">
+              <span>精肉</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="鮮魚">
+              <span>鮮魚</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="惣菜">
+              <span>惣菜</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="日配">
+              <span>日配</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 送信ボタン -->
+        <div class="form-actions">
+          <button type="button" id="clear-form-btn" class="btn btn-secondary">クリア</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 一覧タブ -->
+    <div id="list-tab" class="tab-content">
+      <div class="list-header">
+        <input type="text" id="search-input" class="search-input" placeholder="顧客名・電話番号で検索...">
+        <select id="filter-status" class="filter-select">
+          <option value="all">すべて</option>
+          <option value="未処理">未処理</option>
+          <option value="処理済み">処理済み</option>
+        </select>
+      </div>
+      <div id="orders-list" class="orders-list">
+        <!-- 注文リストはJavaScriptで動的に生成 -->
+      </div>
+    </div>
+
+    <!-- 設定タブ -->
+    <div id="settings-tab" class="tab-content">
+      <div class="settings-container">
+        <h2>データ管理</h2>
+        <div class="settings-section">
+          <button id="export-btn" class="btn btn-secondary full-width">
+            📥 データをエクスポート（バックアップ）
+          </button>
+          <p class="settings-description">保存されているすべてのデータをJSONファイルとしてダウンロードします。</p>
+        </div>
+        <div class="settings-section">
+          <label for="import-file" class="btn btn-secondary full-width">
+            📤 データをインポート（復元）
+          </label>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+          <p class="settings-description">以前エクスポートしたJSONファイルからデータを復元します。</p>
+        </div>
+        <div class="settings-section danger-zone">
+          <button id="clear-all-btn" class="btn btn-danger full-width">
+            🗑️ 全データを削除
+          </button>
+          <p class="settings-description">すべての注文データを削除します。この操作は取り消せません。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 印刷プレビューモーダル -->
+    <div id="print-modal" class="modal">
+      <div class="modal-content print-preview">
+        <div class="modal-header">
+          <h2>印刷プレビュー</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div id="print-content" class="print-content">
+          <!-- 印刷用コンテンツはJavaScriptで生成 -->
+        </div>
+        <div class="modal-actions">
+          <button id="print-btn" class="btn btn-primary">印刷する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編集モーダル -->
+    <div id="edit-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>注文を編集</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div id="edit-form-container">
+          <!-- 編集フォームはJavaScriptで生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 詳細表示モーダル -->
+    <div id="detail-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>注文詳細</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div id="detail-content">
+          <!-- 詳細内容はJavaScriptで生成 -->
+        </div>
+        <div class="modal-actions">
+          <button id="detail-print-btn" class="btn btn-secondary">印刷</button>
+          <button id="detail-edit-btn" class="btn btn-primary">編集</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
