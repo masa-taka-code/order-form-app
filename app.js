@@ -320,8 +320,80 @@ function showPrintPreview(id) {
     const order = orders.find(o => o.id === id);
     if (!order) return;
     currentOrderId = id;
-    printContent.innerHTML = generatePrintHtml(order);
+
+    // 印刷用HTMLを生成
+    const printHtml = generatePrintHtml(order);
+
+    // プレビューモーダルに表示
+    printContent.innerHTML = printHtml;
     printModal.classList.add('active');
+}
+
+// 印刷実行（新しいウィンドウで開く方式）
+function executePrint() {
+    const orders = getOrders();
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order) return;
+
+    const printHtml = generatePrintHtml(order);
+
+    // 印刷用の完全なHTMLページを作成
+    const fullHtml = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注文書印刷</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; padding: 15mm; background: white; color: black; }
+        .print-form { border: 2px solid #333; }
+        .print-row { display: flex; border-bottom: 1px solid #333; }
+        .print-row:last-child { border-bottom: none; }
+        .print-cell { padding: 10px 12px; border-right: 1px solid #333; min-height: 40px; display: flex; align-items: center; }
+        .print-cell:last-child { border-right: none; }
+        .print-cell.header { background: #f5f5f5; font-weight: bold; font-size: 11px; min-width: 80px; }
+        .print-cell.content { flex: 1; font-size: 14px; }
+        .print-cell.small { width: 70px; text-align: center; justify-content: center; }
+        .print-notes { min-height: 100px; align-items: flex-start; }
+        .print-products { flex-direction: column; }
+        .print-product-header { display: grid; grid-template-columns: 1fr 60px 80px; border-bottom: 1px solid #333; background: #f5f5f5; font-weight: bold; font-size: 11px; }
+        .print-product-header > div { padding: 8px; border-right: 1px solid #333; text-align: center; }
+        .print-product-header > div:last-child { border-right: none; }
+        .print-product-item { display: grid; grid-template-columns: 1fr 60px 80px; border-bottom: 1px solid #ddd; }
+        .print-product-item:last-child { border-bottom: none; }
+        .print-product-item > div { padding: 8px; border-right: 1px solid #333; }
+        .print-product-item > div:last-child { border-right: none; text-align: right; }
+        .print-checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; }
+        .print-checkbox { display: flex; align-items: center; gap: 6px; }
+        .print-checkbox-box { width: 16px; height: 16px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .print-total { font-weight: bold; font-size: 16px; text-align: right; padding-right: 12px; }
+        .print-footer { margin-top: 10px; font-size: 11px; }
+        @media print {
+            body { padding: 0; }
+            @page { size: A4; margin: 15mm; }
+        }
+    </style>
+</head>
+<body>
+    ${printHtml}
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>`;
+
+    // 新しいウィンドウで開く
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(fullHtml);
+        printWindow.document.close();
+    } else {
+        alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+    }
 }
 
 function generatePrintHtml(order) {
@@ -356,7 +428,7 @@ function generatePrintHtml(order) {
     `;
 }
 
-document.getElementById('print-btn').addEventListener('click', () => window.print());
+document.getElementById('print-btn').addEventListener('click', () => executePrint());
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
 document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); }));
