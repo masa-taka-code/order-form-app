@@ -852,59 +852,99 @@ textarea {
     padding: 0 16px 120px;
   }
 
-  /* フォームを1列にして見やすく */
+  /* フォームを完全に1列にする */
   .form-grid {
-    grid-template-columns: 1fr;
+    display: flex !important;
+    flex-direction: column !important;
     gap: 20px;
   }
 
-  /* ラジオボタン・チェックボックスを押しやすく */
+  .form-group {
+    width: 100% !important;
+  }
+
+  /* 日付入力欄を画面幅に収める */
+  input[type="date"],
+  input[type="datetime-local"] {
+    width: 100%;
+    max-width: 100%;
+    font-size: 16px;
+    /* iOSでズーム防止 */
+  }
+
+  /* ラジオボタン・チェックボックスを横並びで均等配置 */
   .radio-group,
   .checkbox-group {
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .radio-label,
   .checkbox-label {
-    flex: 1;
-    /* 横幅いっぱいに広げる */
+    flex: 1 1 45%;
+    /* 2つで1行、余裕を持たせる */
+    max-width: calc(50% - 5px);
     justify-content: center;
-    padding: 14px;
-    min-width: 100px;
-    /* 最小幅を確保 */
+    padding: 14px 10px;
+    min-width: 0;
+    text-align: center;
   }
 
-  /* 支払い方法・部門も2列〜3列で見やすく */
-  .payment-methods,
+  .radio-label span,
+  .checkbox-label span {
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+
+  /* 支払い方法は3列 */
+  .payment-methods {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px;
+  }
+
+  .payment-methods .radio-label {
+    max-width: 100%;
+    flex: none;
+    padding: 12px 8px;
+  }
+
+  /* 部門は5列 */
   .departments {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px;
+  }
+
+  .departments .checkbox-label {
+    max-width: 100%;
+    flex: none;
+    padding: 12px 8px;
   }
 
   /* 商品行のデザイン調整 */
   .product-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    padding: 16px;
+    gap: 10px;
+    padding: 14px;
   }
 
-  .product-row .product-name {
+  .product-row input[type="text"] {
     width: 100%;
-    /* 商品名は1行使う */
     order: 1;
   }
 
-  .product-row .product-quantity,
-  .product-row .product-price {
+  .product-row input[type="number"] {
     flex: 1;
-    /* 個数と金額で幅を分け合う */
+    min-width: 80px;
     order: 2;
   }
 
   .product-row .remove-product-btn {
-    width: 40px;
-    height: 48px;
-    /* 高さを入力欄に合わせる */
+    width: 44px;
+    height: 44px;
     border-radius: var(--radius-sm);
     order: 3;
   }
@@ -925,5 +965,28 @@ textarea {
   .order-card-actions .btn {
     width: 100%;
     padding: 14px;
+  }
+}
+
+/* 横画面iPad向け追加調整 (高さが狭い場合) */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .form-section {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+  }
+
+  /* 横画面では支払い方法を6列に */
+  .payment-methods {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+
+  .payment-methods .radio-label {
+    padding: 10px 6px;
+    font-size: 0.85rem;
   }
 }
