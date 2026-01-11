@@ -148,19 +148,35 @@ function getFormData() {
     return data;
 }
 
+// 編集中の注文ID（新規の場合はnull）
+let editingOrderId = null;
+
 orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = getFormData();
     if (!data.customerName) { alert('お客様氏名を入力してください'); return; }
     if (data.products.length === 0 || !data.products.some(p => p.name)) { alert('商品を1つ以上入力してください'); return; }
-    addOrder(data);
-    alert('注文を保存しました！');
+
+    if (editingOrderId) {
+        // 編集モード：既存の注文を更新
+        updateOrder(editingOrderId, data);
+        alert('注文を更新しました！');
+        editingOrderId = null;
+    } else {
+        // 新規モード
+        addOrder(data);
+        alert('注文を保存しました！');
+    }
     orderForm.reset();
     initForm();
 });
 
 clearFormBtn.addEventListener('click', () => {
-    if (confirm('入力内容をクリアしますか？')) { orderForm.reset(); initForm(); }
+    if (confirm('入力内容をクリアしますか？')) {
+        orderForm.reset();
+        initForm();
+        editingOrderId = null;
+    }
 });
 
 function renderOrdersList() {
@@ -170,12 +186,12 @@ function renderOrdersList() {
     let filtered = orders;
     if (searchTerm) filtered = filtered.filter(o => o.customerName.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
     if (statusFilter !== 'all') filtered = filtered.filter(o => o.status === statusFilter);
-    
+
     if (filtered.length === 0) {
         ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
         return;
     }
-    
+
     ordersList.innerHTML = filtered.map(order => `
         <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${order.id}">
             <div class="order-card-header">
@@ -189,14 +205,16 @@ function renderOrdersList() {
             </div>
             <div class="order-card-actions">
                 <button class="btn btn-secondary view-btn" data-id="${order.id}">詳細</button>
+                <button class="btn btn-secondary edit-btn" data-id="${order.id}">編集</button>
                 <button class="btn btn-secondary print-preview-btn" data-id="${order.id}">印刷</button>
                 <button class="btn btn-primary toggle-status-btn" data-id="${order.id}">${order.status === '処理済み' ? '未処理に戻す' : '処理済みにする'}</button>
                 <button class="btn btn-danger delete-btn" data-id="${order.id}">削除</button>
             </div>
         </div>
     `).join('');
-    
+
     ordersList.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showOrderDetail(btn.dataset.id); }));
+    ordersList.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); editOrder(btn.dataset.id); }));
     ordersList.querySelectorAll('.print-preview-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showPrintPreview(btn.dataset.id); }));
     ordersList.querySelectorAll('.toggle-status-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleOrderStatus(btn.dataset.id); }));
     ordersList.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); handleDeleteOrder(btn.dataset.id); }));
@@ -243,7 +261,59 @@ function showOrderDetail(id) {
 }
 
 document.getElementById('detail-print-btn').addEventListener('click', () => { detailModal.classList.remove('active'); showPrintPreview(currentOrderId); });
-document.getElementById('detail-edit-btn').addEventListener('click', () => { detailModal.classList.remove('active'); alert('編集機能は今後実装予定です'); });
+document.getElementById('detail-edit-btn').addEventListener('click', () => { detailModal.classList.remove('active'); editOrder(currentOrderId); });
+
+// ===== 編集機能 =====
+function editOrder(id) {
+    const orders = getOrders();
+    const order = orders.find(o => o.id === id);
+    if (!order) return;
+
+    // 編集モードに設定
+    editingOrderId = id;
+
+    // 入力タブに切り替え
+    navTabs.forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-tab="input"]').classList.add('active');
+    tabContents.forEach(c => c.classList.remove('active'));
+    document.getElementById('input-tab').classList.add('active');
+
+    // フォームにデータを読み込む
+    document.getElementById('reception-date').value = order.receptionDate || '';
+    document.querySelector(`input[name="receptionMethod"][value="${order.receptionMethod}"]`).checked = true;
+    document.getElementById('staff-name').value = order.staffName || '';
+    document.getElementById('order-datetime').value = order.orderDatetime || '';
+    document.querySelector(`input[name="deliveryMethod"][value="${order.deliveryMethod}"]`).checked = true;
+    document.getElementById('customer-name').value = order.customerName || '';
+    document.getElementById('phone-number').value = order.phoneNumber || '';
+    document.getElementById('delivery-address').value = order.deliveryAddress || '';
+    document.querySelector(`input[name="taxType"][value="${order.taxType}"]`).checked = true;
+    document.getElementById('notes').value = order.notes || '';
+    document.querySelector(`input[name="paymentMethod"][value="${order.paymentMethod}"]`).checked = true;
+    document.getElementById('billing-name').value = order.billingName || '';
+
+    // 部門チェックボックス
+    document.querySelectorAll('input[name="departments"]').forEach(cb => {
+        cb.checked = order.departments && order.departments.includes(cb.value);
+    });
+
+    // 商品リスト
+    productsContainer.innerHTML = '';
+    if (order.products && order.products.length > 0) {
+        order.products.forEach(p => {
+            const row = createProductRow();
+            row.querySelector('.product-name').value = p.name || '';
+            row.querySelector('.product-quantity').value = p.quantity || 1;
+            row.querySelector('.product-price').value = p.price || 0;
+            productsContainer.appendChild(row);
+        });
+    } else {
+        addProductRow();
+    }
+    updateTotal();
+
+    alert('編集モードです。変更後「保存」ボタンを押してください。');
+}
 
 function showPrintPreview(id) {
     const orders = getOrders();
@@ -255,19 +325,27 @@ function showPrintPreview(id) {
 }
 
 function generatePrintHtml(order) {
-    const productsHtml = order.products.map(p => `<div class="print-product-item"><div>${escapeHtml(p.name)}</div><div style="text-align: center;">${p.quantity}</div><div>¥${(p.quantity * p.price).toLocaleString()}</div></div>`).join('');
+    // データの安全なアクセス
+    const products = order.products || [];
+    const departments = order.departments || [];
+
+    const productsHtml = products.length > 0
+        ? products.map(p => `<div class="print-product-item"><div>${escapeHtml(p.name || '')}</div><div style="text-align: center;">${p.quantity || 0}</div><div>¥${((p.quantity || 0) * (p.price || 0)).toLocaleString()}</div></div>`).join('')
+        : '<div class="print-product-item"><div>（商品なし）</div><div>-</div><div>-</div></div>';
+
     const paymentMethods = ['代金', '代スミ', '未収', '売掛', '代引', '納品請求書'];
     const paymentHtml = paymentMethods.map(m => `<span class="print-checkbox"><span class="print-checkbox-box">${order.paymentMethod === m ? '✓' : ''}</span><span>${m}</span></span>`).join('');
-    const departments = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
-    const departmentsHtml = departments.map(d => `<span class="print-checkbox"><span class="print-checkbox-box">${order.departments.includes(d) ? '✓' : ''}</span><span>${d}</span></span>`).join('');
-    
+
+    const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
+    const departmentsHtml = deptList.map(d => `<span class="print-checkbox"><span class="print-checkbox-box">${departments.includes(d) ? '✓' : ''}</span><span>${d}</span></span>`).join('');
+
     return `
         <div class="print-form">
             <div class="print-row"><div class="print-cell header">受付日</div><div class="print-cell content">${formatDate(order.receptionDate)}</div><div class="print-cell header small">${order.receptionMethod === '来店' ? '✓' : ''}来店</div><div class="print-cell header small">${order.receptionMethod === '電話' ? '✓' : ''}電話</div><div class="print-cell header">受注者</div><div class="print-cell content">${escapeHtml(order.staffName || '')}</div></div>
             <div class="print-row"><div class="print-cell header">ご注文日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '来店' ? '✓' : ''}来店</div></div>
-            <div class="print-row"><div class="print-cell header">お客さま氏名</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.customerName)}</div></div>
+            <div class="print-row"><div class="print-cell header">お客さま氏名</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.customerName || '')}</div></div>
             <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.phoneNumber || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>金額</div></div>${productsHtml}</div><div class="print-cell" style="flex-direction: column; align-items: flex-end;"><div style="font-size: 11px; margin-bottom: 8px;">(${order.taxType})</div><div class="print-total">合計: ¥${order.totalAmount.toLocaleString()}</div></div></div>
+            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>金額</div></div>${productsHtml}</div><div class="print-cell" style="flex-direction: column; align-items: flex-end;"><div style="font-size: 11px; margin-bottom: 8px;">(${order.taxType || '税込'})</div><div class="print-total">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div></div></div>
             <div class="print-row"><div class="print-cell header">詳細・備考</div><div class="print-cell content print-notes">${escapeHtml(order.notes || '').replace(/\n/g, '<br>')}</div></div>
             <div class="print-row"><div class="print-cell header">配達先住所</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.deliveryAddress || '')}</div></div>
             <div class="print-row"><div class="print-cell content" style="flex: 2;"><div class="print-checkbox-group">${paymentHtml}</div></div></div>
