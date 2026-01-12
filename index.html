@@ -126,34 +126,22 @@
         <section class="form-section">
           <h2 class="section-title">支払い・請求</h2>
           <div class="form-grid">
-            <div class="form-group full-width">
-              <label>支払方法</label>
-              <div class="radio-group payment-methods">
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="代金" checked>
-                  <span>代金</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="代スミ">
-                  <span>代スミ</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="未収">
-                  <span>未収</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="売掛">
-                  <span>売掛</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="代引">
-                  <span>代引</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="paymentMethod" value="納品請求書">
-                  <span>納品請求書</span>
-                </label>
-              </div>
+            <div class="form-group">
+              <label for="payment-type">代金</label>
+              <select id="payment-type" name="paymentType">
+                <option value="">（選択してください）</option>
+                <option value="代スミ">代スミ</option>
+                <option value="未収">未収</option>
+                <option value="売掛">売掛</option>
+                <option value="代引">代引</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>納品請求書</label>
+              <label class="checkbox-label invoice-checkbox">
+                <input type="checkbox" id="invoice-required" name="invoiceRequired" value="要">
+                <span>要</span>
+              </label>
             </div>
             <div class="form-group full-width">
               <label for="billing-name">ご請求先・領収書宛名</label>
