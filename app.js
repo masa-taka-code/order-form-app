@@ -465,6 +465,27 @@ function generatePrintHtml(order) {
     const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
     const departmentsHtml = deptList.map(d => `<span class="print-checkbox"><span class="print-checkbox-box">${departments.includes(d) ? '✓' : ''}</span><span>${d}</span></span>`).join('');
 
+    // 税抜/税込の表示を生成
+    const taxType = order.taxType || '税込';
+    const subtotal = order.subtotal || order.totalAmount || 0;
+    const taxAmount = order.taxAmount || 0;
+    const totalAmount = order.totalAmount || 0;
+
+    let totalHtml = '';
+    if (taxType === '税抜') {
+        totalHtml = `
+            <div class="print-total-label">(税抜)</div>
+            <div style="font-size: 11px;">税抜: ¥${subtotal.toLocaleString()}</div>
+            <div style="font-size: 11px;">税(10%): ¥${taxAmount.toLocaleString()}</div>
+            <div class="print-total">合計<br>¥${totalAmount.toLocaleString()}</div>
+        `;
+    } else {
+        totalHtml = `
+            <div class="print-total-label">(税込)</div>
+            <div class="print-total">合計<br>¥${totalAmount.toLocaleString()}</div>
+        `;
+    }
+
     // ③タイトル追加、②お願い文言を削除、⑤店舗情報はCSS側で配置
     return `
         <h2 class="print-title">ご注文承り書（お客様控え）</h2>
@@ -473,7 +494,7 @@ function generatePrintHtml(order) {
             <div class="print-row"><div class="print-cell header">ご注文日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '来店' ? '✓' : ''}来店</div></div>
             <div class="print-row"><div class="print-cell header">お客さま氏名</div><div class="print-cell content">${escapeHtml(order.customerName || '')}</div></div>
             <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content">${escapeHtml(order.phoneNumber || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>単価</div><div>合計金額</div></div>${productsHtml}</div><div class="print-total-area"><div class="print-total-label">(${order.taxType || '税込'})</div><div class="print-total">合計<br>¥${(order.totalAmount || 0).toLocaleString()}</div></div></div>
+            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>単価</div><div>合計金額</div></div>${productsHtml}</div><div class="print-total-area">${totalHtml}</div></div>
             <div class="print-row"><div class="print-cell header">詳細・備考</div><div class="print-cell content print-notes">${escapeHtml(order.notes || '').replace(/\n/g, '<br>')}</div></div>
             <div class="print-row"><div class="print-cell header">配達先住所</div><div class="print-cell content">${escapeHtml(order.deliveryAddress || '')}</div></div>
             <div class="print-row"><div class="print-cell header">代金</div><div class="print-cell content"><div class="print-checkbox-group">${paymentHtml}</div></div></div>
