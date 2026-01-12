@@ -81,11 +81,18 @@ function createProductRow() {
     row.innerHTML = `
         <input type="text" placeholder="商品名" class="product-name">
         <input type="number" placeholder="個数" min="1" value="1" class="product-quantity">
-        <input type="number" placeholder="金額" min="0" class="product-price">
+        <input type="number" placeholder="単価" min="0" class="product-price">
+        <span class="product-subtotal">¥0</span>
         <button type="button" class="remove-product-btn">×</button>
     `;
-    row.querySelector('.product-price').addEventListener('input', updateTotal);
-    row.querySelector('.product-quantity').addEventListener('input', updateTotal);
+    const updateRowSubtotal = () => {
+        const quantity = parseInt(row.querySelector('.product-quantity').value) || 0;
+        const price = parseInt(row.querySelector('.product-price').value) || 0;
+        row.querySelector('.product-subtotal').textContent = `¥${(quantity * price).toLocaleString()}`;
+        updateTotal();
+    };
+    row.querySelector('.product-price').addEventListener('input', updateRowSubtotal);
+    row.querySelector('.product-quantity').addEventListener('input', updateRowSubtotal);
     row.querySelector('.remove-product-btn').addEventListener('click', () => {
         row.remove();
         updateTotal();
@@ -130,7 +137,8 @@ function getFormData() {
         deliveryAddress: formData.get('deliveryAddress'),
         taxType: formData.get('taxType'),
         notes: formData.get('notes'),
-        paymentMethod: formData.get('paymentMethod'),
+        paymentType: formData.get('paymentType'),
+        invoiceRequired: formData.get('invoiceRequired') === '要',
         billingName: formData.get('billingName'),
         departments: formData.getAll('departments'),
         products: [],
@@ -255,7 +263,7 @@ function showOrderDetail(id) {
         <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName)}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
         <div class="detail-section"><h3>注文商品 (${order.taxType})</h3><div class="detail-products">${order.products.map(p => `<div class="detail-product-item"><span>${escapeHtml(p.name)}</span><span>${p.quantity}個 × ¥${p.price.toLocaleString()} = ¥${(p.quantity * p.price).toLocaleString()}</span></div>`).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${order.totalAmount.toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
-        <div class="detail-section"><h3>支払い・その他</h3><p>支払方法: ${order.paymentMethod}</p><p>請求先: ${escapeHtml(order.billingName || '未登録')}</p><p>部門: ${order.departments.length > 0 ? order.departments.join(', ') : '未選択'}</p></div>
+        <div class="detail-section"><h3>支払い・その他</h3><p>代金: ${order.paymentType || order.paymentMethod || '未選択'}</p><p>納品請求書: ${order.invoiceRequired ? '要' : '不要'}</p><p>請求先: ${escapeHtml(order.billingName || '未登録')}</p><p>部門: ${order.departments.length > 0 ? order.departments.join(', ') : '未選択'}</p></div>
     `;
     detailModal.classList.add('active');
 }
@@ -289,7 +297,9 @@ function editOrder(id) {
     document.getElementById('delivery-address').value = order.deliveryAddress || '';
     document.querySelector(`input[name="taxType"][value="${order.taxType}"]`).checked = true;
     document.getElementById('notes').value = order.notes || '';
-    document.querySelector(`input[name="paymentMethod"][value="${order.paymentMethod}"]`).checked = true;
+    // 新しい代金・納品請求書フォームに対応
+    document.getElementById('payment-type').value = order.paymentType || order.paymentMethod || '';
+    document.getElementById('invoice-required').checked = order.invoiceRequired || false;
     document.getElementById('billing-name').value = order.billingName || '';
 
     // 部門チェックボックス
@@ -347,37 +357,47 @@ function executePrint() {
     <title>注文書印刷</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; padding: 15mm; background: white; color: black; }
-        .print-form { border: 2px solid #333; }
+        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; padding: 15mm; background: white; color: black; position: relative; min-height: 100vh; }
+        .print-wrapper { padding-bottom: 60px; }
+        .print-title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px; letter-spacing: 2px; }
+        .print-form { border: 2px solid #333; width: 100%; table-layout: fixed; }
         .print-row { display: flex; border-bottom: 1px solid #333; }
         .print-row:last-child { border-bottom: none; }
-        .print-cell { padding: 10px 12px; border-right: 1px solid #333; min-height: 40px; display: flex; align-items: center; }
+        .print-cell { padding: 8px 10px; border-right: 1px solid #333; min-height: 36px; display: flex; align-items: center; font-size: 12px; }
         .print-cell:last-child { border-right: none; }
-        .print-cell.header { background: #f5f5f5; font-weight: bold; font-size: 11px; min-width: 80px; }
-        .print-cell.content { flex: 1; font-size: 14px; }
-        .print-cell.small { width: 70px; text-align: center; justify-content: center; }
-        .print-notes { min-height: 100px; align-items: flex-start; }
-        .print-products { flex-direction: column; }
-        .print-product-header { display: grid; grid-template-columns: 1fr 60px 80px; border-bottom: 1px solid #333; background: #f5f5f5; font-weight: bold; font-size: 11px; }
-        .print-product-header > div { padding: 8px; border-right: 1px solid #333; text-align: center; }
+        .print-cell.header { background: #f5f5f5; font-weight: bold; font-size: 11px; width: 90px; flex-shrink: 0; justify-content: center; text-align: center; }
+        .print-cell.content { flex: 1; font-size: 13px; }
+        .print-cell.small { width: 60px; text-align: center; justify-content: center; flex-shrink: 0; }
+        .print-notes { min-height: 80px; align-items: flex-start; }
+        .print-products { flex-direction: column; padding: 0; }
+        .print-product-header { display: grid; grid-template-columns: 1fr 50px 70px 80px; border-bottom: 1px solid #333; background: #f5f5f5; font-weight: bold; font-size: 10px; }
+        .print-product-header > div { padding: 6px; border-right: 1px solid #333; text-align: center; }
         .print-product-header > div:last-child { border-right: none; }
-        .print-product-item { display: grid; grid-template-columns: 1fr 60px 80px; border-bottom: 1px solid #ddd; }
+        .print-product-item { display: grid; grid-template-columns: 1fr 50px 70px 80px; border-bottom: 1px solid #ddd; }
         .print-product-item:last-child { border-bottom: none; }
-        .print-product-item > div { padding: 8px; border-right: 1px solid #333; }
+        .print-product-item > div { padding: 6px; border-right: 1px solid #333; font-size: 11px; }
         .print-product-item > div:last-child { border-right: none; text-align: right; }
-        .print-checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; }
-        .print-checkbox { display: flex; align-items: center; gap: 6px; }
-        .print-checkbox-box { width: 16px; height: 16px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-        .print-total { font-weight: bold; font-size: 16px; text-align: right; padding-right: 12px; }
-        .print-footer { margin-top: 10px; font-size: 11px; }
+        .print-product-item > div:nth-child(2), .print-product-item > div:nth-child(3) { text-align: center; }
+        .print-checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .print-checkbox { display: flex; align-items: center; gap: 4px; }
+        .print-checkbox-box { width: 14px; height: 14px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .print-total { font-weight: bold; font-size: 14px; text-align: right; padding-right: 10px; }
+        .print-store-info { position: absolute; bottom: 15mm; right: 15mm; text-align: right; font-size: 12px; line-height: 1.6; }
         @media print {
             body { padding: 0; }
             @page { size: A4; margin: 15mm; }
+            .print-store-info { position: fixed; bottom: 15mm; right: 15mm; }
         }
     </style>
 </head>
 <body>
+    <div class="print-wrapper">
     ${printHtml}
+    </div>
+    <div class="print-store-info">
+        <div>スーパーマーケット玉木屋</div>
+        <div>0193-63-2711</div>
+    </div>
     <script>
         window.onload = function() {
             window.print();
@@ -401,30 +421,38 @@ function generatePrintHtml(order) {
     const products = order.products || [];
     const departments = order.departments || [];
 
+    // ①商品欄：商品名・個数・単価・合計金額の4列で表示
     const productsHtml = products.length > 0
-        ? products.map(p => `<div class="print-product-item"><div>${escapeHtml(p.name || '')}</div><div style="text-align: center;">${p.quantity || 0}</div><div>¥${((p.quantity || 0) * (p.price || 0)).toLocaleString()}</div></div>`).join('')
-        : '<div class="print-product-item"><div>（商品なし）</div><div>-</div><div>-</div></div>';
+        ? products.map(p => `<div class="print-product-item"><div>${escapeHtml(p.name || '')}</div><div>${p.quantity || 0}</div><div>¥${(p.price || 0).toLocaleString()}</div><div>¥${((p.quantity || 0) * (p.price || 0)).toLocaleString()}</div></div>`).join('')
+        : '<div class="print-product-item"><div>（商品なし）</div><div>-</div><div>-</div><div>-</div></div>';
 
-    const paymentMethods = ['代金', '代スミ', '未収', '売掛', '代引', '納品請求書'];
-    const paymentHtml = paymentMethods.map(m => `<span class="print-checkbox"><span class="print-checkbox-box">${order.paymentMethod === m ? '✓' : ''}</span><span>${m}</span></span>`).join('');
+    // ④代金：代スミ/未収/売掛/代引からの選択を表示
+    const paymentType = order.paymentType || order.paymentMethod || '';
+    const paymentOptions = ['代スミ', '未収', '売掛', '代引'];
+    const paymentHtml = paymentOptions.map(m => `<span class="print-checkbox"><span class="print-checkbox-box">${paymentType === m ? '✓' : ''}</span><span>${m}</span></span>`).join('');
+
+    // ④納品請求書：要チェックボックス
+    const invoiceHtml = `<span class="print-checkbox"><span class="print-checkbox-box">${order.invoiceRequired ? '✓' : ''}</span><span>要</span></span>`;
 
     const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
     const departmentsHtml = deptList.map(d => `<span class="print-checkbox"><span class="print-checkbox-box">${departments.includes(d) ? '✓' : ''}</span><span>${d}</span></span>`).join('');
 
+    // ③タイトル追加、②お願い文言を削除、⑤店舗情報はCSS側で配置
     return `
+        <h2 class="print-title">ご注文承り書（お客様控え）</h2>
         <div class="print-form">
             <div class="print-row"><div class="print-cell header">受付日</div><div class="print-cell content">${formatDate(order.receptionDate)}</div><div class="print-cell header small">${order.receptionMethod === '来店' ? '✓' : ''}来店</div><div class="print-cell header small">${order.receptionMethod === '電話' ? '✓' : ''}電話</div><div class="print-cell header">受注者</div><div class="print-cell content">${escapeHtml(order.staffName || '')}</div></div>
             <div class="print-row"><div class="print-cell header">ご注文日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '来店' ? '✓' : ''}来店</div></div>
-            <div class="print-row"><div class="print-cell header">お客さま氏名</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.customerName || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.phoneNumber || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>金額</div></div>${productsHtml}</div><div class="print-cell" style="flex-direction: column; align-items: flex-end;"><div style="font-size: 11px; margin-bottom: 8px;">(${order.taxType || '税込'})</div><div class="print-total">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div></div></div>
+            <div class="print-row"><div class="print-cell header">お客さま氏名</div><div class="print-cell content">${escapeHtml(order.customerName || '')}</div></div>
+            <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content">${escapeHtml(order.phoneNumber || '')}</div></div>
+            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>単価</div><div>合計金額</div></div>${productsHtml}</div><div class="print-total-area"><div class="print-total-label">(${order.taxType || '税込'})</div><div class="print-total">合計<br>¥${(order.totalAmount || 0).toLocaleString()}</div></div></div>
             <div class="print-row"><div class="print-cell header">詳細・備考</div><div class="print-cell content print-notes">${escapeHtml(order.notes || '').replace(/\n/g, '<br>')}</div></div>
-            <div class="print-row"><div class="print-cell header">配達先住所</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.deliveryAddress || '')}</div></div>
-            <div class="print-row"><div class="print-cell content" style="flex: 2;"><div class="print-checkbox-group">${paymentHtml}</div></div></div>
-            <div class="print-row"><div class="print-cell header">ご請求先<br>領収書宛名</div><div class="print-cell content" style="flex: 2;">${escapeHtml(order.billingName || '')}</div></div>
-            <div class="print-row"><div class="print-cell content" style="flex: 2;"><div class="print-checkbox-group">${departmentsHtml}</div></div></div>
+            <div class="print-row"><div class="print-cell header">配達先住所</div><div class="print-cell content">${escapeHtml(order.deliveryAddress || '')}</div></div>
+            <div class="print-row"><div class="print-cell header">代金</div><div class="print-cell content"><div class="print-checkbox-group">${paymentHtml}</div></div></div>
+            <div class="print-row"><div class="print-cell header">納品請求書</div><div class="print-cell content"><div class="print-checkbox-group">${invoiceHtml}</div></div></div>
+            <div class="print-row"><div class="print-cell header">ご請求先<br>領収書宛名</div><div class="print-cell content">${escapeHtml(order.billingName || '')}</div></div>
+            <div class="print-row"><div class="print-cell header">部門</div><div class="print-cell content"><div class="print-checkbox-group">${departmentsHtml}</div></div></div>
         </div>
-        <p style="margin-top: 10px; font-size: 11px;">※お願い　この注文書はお支払いいただいた後、担当部門へ戻してください。</p>
     `;
 }
 
