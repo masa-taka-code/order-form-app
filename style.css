@@ -270,7 +270,7 @@ textarea {
 
 .product-row {
   display: grid;
-  grid-template-columns: 1fr 80px 100px 40px;
+  grid-template-columns: 1fr 80px 100px 100px 40px;
   gap: 10px;
   align-items: center;
   background: var(--bg-tertiary);
@@ -293,6 +293,18 @@ textarea {
 
 .product-row input {
   padding: 10px 12px;
+}
+
+.product-subtotal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  background: var(--bg-color);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  color: var(--success-color);
+  font-size: 0.95rem;
 }
 
 .remove-product-btn {
@@ -685,98 +697,138 @@ textarea {
   font-size: 12px;
 }
 
-.print-form {
-  border: 2px solid #333;
-  background: white;
-  color: black;
-  font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+/* ===== 印刷用スタイル（画面表示用プレビュー・実際の印刷共通） ===== */
+.print-wrapper {
+  padding-bottom: 60px;
 }
 
+.print-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  letter-spacing: 4px;
+}
+
+.print-form {
+  border: 2px solid #000;
+  width: 100%;
+  border-collapse: collapse;
+  /* テーブルライクな挙動を意識 */
+  font-size: 12px;
+}
+
+/* 行のスタイル */
 .print-row {
   display: flex;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #000;
 }
 
 .print-row:last-child {
   border-bottom: none;
 }
 
+/* セルの基本スタイル */
 .print-cell {
-  padding: 10px 12px;
-  border-right: 1px solid #333;
-  min-height: 40px;
+  padding: 8px;
+  border-right: 1px solid #000;
+  min-height: 36px;
   display: flex;
   align-items: center;
+  color: #000;
 }
 
 .print-cell:last-child {
   border-right: none;
 }
 
+/* ヘッダーセル */
 .print-cell.header {
-  background: #f5f5f5;
+  background: #f0f0f0;
+  /* 少し薄めのグレーに変更 */
   font-weight: bold;
   font-size: 11px;
-  min-width: 80px;
+  width: 100px;
+  flex-shrink: 0;
+  justify-content: center;
+  text-align: center;
 }
 
+/* コンテンツセル */
 .print-cell.content {
   flex: 1;
-  font-size: 14px;
+  font-size: 13px;
 }
 
+/* 小さいヘッダーセル（チェック用など） */
 .print-cell.small {
-  width: 70px;
+  width: 60px;
   text-align: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.print-notes {
-  min-height: 120px;
-  align-items: flex-start;
+/* 注文商品リスト部分のコンテナ - パディングを0にして内部グリッドを端まで広げる */
+.print-cell.content.print-products {
+  display: block;
+  padding: 0;
 }
 
-.print-products {
-  flex-direction: column;
-}
-
+/* 商品リストのヘッダー行 */
 .print-product-header {
   display: grid;
-  grid-template-columns: 1fr 60px 80px;
-  border-bottom: 1px solid #333;
-  background: #f5f5f5;
+  grid-template-columns: 1fr 50px 70px 80px;
+  border-bottom: 1px solid #000;
+  background: #f0f0f0;
   font-weight: bold;
   font-size: 11px;
 }
 
 .print-product-header>div {
-  padding: 8px;
-  border-right: 1px solid #333;
+  padding: 6px;
+  border-right: 1px solid #000;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .print-product-header>div:last-child {
   border-right: none;
 }
 
+/* 商品リストのデータ行 */
 .print-product-item {
   display: grid;
-  grid-template-columns: 1fr 60px 80px;
-  border-bottom: 1px solid #ddd;
+  grid-template-columns: 1fr 50px 70px 80px;
+  border-bottom: 1px solid #000;
+  /* 薄いグレー(#ddd)をやめて統一 */
 }
 
-.print-product-item:last-child {
-  border-bottom: none;
-}
+/* 最後の商品行のボーダーは削除しない（合計欄との境界線になるため、または空行が続く場合の区切り）
+   ただし、リスト自体の最後の行としての扱いはapp.js側で制御するか、ここで調整 */
 
 .print-product-item>div {
-  padding: 8px;
-  border-right: 1px solid #333;
+  padding: 6px 8px;
+  border-right: 1px solid #000;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .print-product-item>div:last-child {
   border-right: none;
-  text-align: right;
+  justify-content: flex-end;
+}
+
+.print-product-item>div:nth-child(2),
+.print-product-item>div:nth-child(3) {}
+
+/* 備考欄 */
+.print-notes {
+  min-height: 80px;
+  align-items: flex-start;
+  white-space: pre-wrap;
 }
 
 .print-checkbox-group {
@@ -791,20 +843,60 @@ textarea {
 }
 
 .print-checkbox-box {
-  width: 16px;
-  height: 16px;
-  border: 1px solid #333;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
+  line-height: 1;
+}
+
+/* 合計金額表示エリア（商品欄の右側） */
+.print-total-area {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #000;
+  padding: 10px;
+}
+
+.print-total-label {
+  font-size: 12px;
+  margin-bottom: 5px;
 }
 
 .print-total {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
+  text-align: center;
+  padding: 0;
+}
+
+/* 印刷用タイトル */
+.print-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  letter-spacing: 4px;
+}
+
+/* 印刷用店舗情報 */
+.print-store-info {
   text-align: right;
-  padding-right: 12px;
+  font-size: 12px;
+  margin-top: 20px;
+  line-height: 1.6;
+}
+
+/* 納品請求書チェックボックス */
+.invoice-checkbox {
+  display: inline-flex;
+  width: auto;
 }
 
 @media print {
@@ -942,11 +1034,17 @@ textarea {
     order: 2;
   }
 
+  .product-subtotal {
+    flex: 1;
+    min-width: 80px;
+    order: 3;
+  }
+
   .product-row .remove-product-btn {
     width: 44px;
     height: 44px;
     border-radius: var(--radius-sm);
-    order: 3;
+    order: 4;
   }
 
   /* ヘッダー・ボタン調整 */
