@@ -138,10 +138,7 @@ function initForm() {
     updateTotal();
 }
 
-// 税込/税抜切り替え時に合計を再計算
-document.querySelectorAll('input[name="taxType"]').forEach(radio => {
-    radio.addEventListener('change', updateTotal);
-});
+
 
 function getFormData() {
     const formData = new FormData(orderForm);
@@ -545,4 +542,11 @@ function formatDateTime(dateTimeStr) {
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-document.addEventListener('DOMContentLoaded', () => { initForm(); renderOrdersList(); });
+document.addEventListener('DOMContentLoaded', () => {
+    initForm();
+    renderOrdersList();
+    // 税込/税抜切り替え時に合計を再計算
+    document.querySelectorAll('input[name="taxType"]').forEach(radio => {
+        radio.addEventListener('change', updateTotal);
+    });
+});
