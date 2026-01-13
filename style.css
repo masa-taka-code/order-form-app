@@ -9,8 +9,8 @@
   --bg-color: #FFFFFF;
   --bg-secondary: #F8FAFC;
   --bg-tertiary: #E2E8F0;
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
+  --text-primary: #000000;
+  --text-secondary: #333333;
   --border-color: #CBD5E1;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   --radius: 12px;
@@ -24,7 +24,7 @@
 }
 
 html {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 body {
