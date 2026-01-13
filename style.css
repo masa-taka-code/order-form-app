@@ -6,13 +6,13 @@
   --success-color: #10B981;
   --danger-color: #EF4444;
   --warning-color: #F59E0B;
-  --bg-color: #0F172A;
-  --bg-secondary: #1E293B;
-  --bg-tertiary: #334155;
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --border-color: #475569;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --bg-color: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-tertiary: #E2E8F0;
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --border-color: #CBD5E1;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -24,12 +24,12 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 body {
   font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
-  background: linear-gradient(135deg, var(--bg-color) 0%, #1a1a2e 100%);
+  background: var(--bg-color);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.6;
@@ -146,12 +146,13 @@ textarea,
 select {
   width: 100%;
   padding: 14px 16px;
-  background: var(--bg-tertiary);
-  border: 2px solid transparent;
+  background: var(--bg-color);
+  border: 2px solid var(--primary-color);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
 }
 
 input:focus,
@@ -159,7 +160,8 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 20px rgba(79, 70, 229, 0.2);
+  background: var(--bg-color);
 }
 
 input::placeholder,
@@ -270,13 +272,40 @@ textarea {
 
 .product-row {
   display: grid;
-  grid-template-columns: 1fr 80px 100px 100px 40px;
-  gap: 10px;
+  grid-template-columns: 1fr 70px 140px 70px 60px 90px 36px;
+  gap: 8px;
   align-items: center;
   background: var(--bg-tertiary);
   padding: 12px;
   border-radius: var(--radius-sm);
   animation: slideIn 0.3s ease;
+}
+
+.product-price-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-price-wrapper input {
+  flex: 1;
+  min-width: 60px;
+}
+
+.product-tax-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.product-tax-type,
+.product-tax-rate {
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
 }
 
 @keyframes slideIn {
@@ -687,14 +716,37 @@ textarea {
 }
 
 .print-preview {
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .print-content {
   background: white;
   color: black;
   padding: 20px;
-  font-size: 12px;
+  font-size: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* A4プレビューコンテナ */
+.print-preview-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  position: relative;
+  padding: 15mm;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
+
+/* プレビュー内の店舗情報 */
+.print-preview-store-info {
+  position: absolute;
+  bottom: 15mm;
+  right: 15mm;
+  text-align: right;
+  font-size: 14px;
+  line-height: 1.8;
 }
 
 /* ===== 印刷用スタイル（画面表示用プレビュー・実際の印刷共通） ===== */
@@ -777,15 +829,15 @@ textarea {
 /* 商品リストのヘッダー行 */
 .print-product-header {
   display: grid;
-  grid-template-columns: 1fr 50px 70px 80px;
+  grid-template-columns: 1fr 50px 100px 80px;
   border-bottom: 1px solid #000;
   background: #f0f0f0;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .print-product-header>div {
-  padding: 6px;
+  padding: 8px;
   border-right: 1px solid #000;
   text-align: center;
   display: flex;
@@ -800,18 +852,14 @@ textarea {
 /* 商品リストのデータ行 */
 .print-product-item {
   display: grid;
-  grid-template-columns: 1fr 50px 70px 80px;
+  grid-template-columns: 1fr 50px 100px 80px;
   border-bottom: 1px solid #000;
-  /* 薄いグレー(#ddd)をやめて統一 */
 }
 
-/* 最後の商品行のボーダーは削除しない（合計欄との境界線になるため、または空行が続く場合の区切り）
-   ただし、リスト自体の最後の行としての扱いはapp.js側で制御するか、ここで調整 */
-
 .print-product-item>div {
-  padding: 6px 8px;
+  padding: 8px;
   border-right: 1px solid #000;
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   align-items: center;
 }
