@@ -72,7 +72,7 @@
           <h2 class="section-title">お客様情報</h2>
           <div class="form-grid">
             <div class="form-group full-width">
-              <label for="customer-name">お客さま氏名</label>
+              <label for="customer-name">お客様氏名</label>
               <input type="text" id="customer-name" name="customerName" placeholder="お客様のお名前" required>
             </div>
             <div class="form-group">
@@ -217,12 +217,6 @@
           <input type="file" id="import-file" accept=".json" style="display: none;">
           <p class="settings-description">以前エクスポートしたJSONファイルからデータを復元します。</p>
         </div>
-        <div class="settings-section danger-zone">
-          <button id="clear-all-btn" class="btn btn-danger full-width">
-            🗑️ 全データを削除
-          </button>
-          <p class="settings-description">すべての注文データを削除します。この操作は取り消せません。</p>
-        </div>
       </div>
     </div>
 
@@ -237,7 +231,8 @@
           <!-- 印刷用コンテンツはJavaScriptで生成 -->
         </div>
         <div class="modal-actions">
-          <button id="print-btn" class="btn btn-primary">印刷する</button>
+          <button id="back-to-list-btn" class="btn btn-secondary">一覧に戻る</button>
+          <button id="download-pdf-btn" class="btn btn-primary">📥 PDFダウンロード</button>
         </div>
       </div>
     </div>
