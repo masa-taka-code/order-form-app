@@ -15,7 +15,8 @@
     <!-- ナビゲーションタブ -->
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="input">新規入力</button>
-      <button class="nav-tab" data-tab="list">一覧</button>
+      <button class="nav-tab" data-tab="summary">一覧</button>
+      <button class="nav-tab" data-tab="list">詳細</button>
       <button class="nav-tab" data-tab="settings">設定</button>
     </nav>
 
@@ -174,6 +175,18 @@
               <input type="checkbox" name="departments" value="日配">
               <span>日配</span>
             </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="酒">
+              <span>酒</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="菓子">
+              <span>菓子</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="雑貨">
+              <span>雑貨</span>
+            </label>
           </div>
         </section>
 
@@ -185,7 +198,17 @@
       </form>
     </div>
 
-    <!-- 一覧タブ -->
+    <!-- 一覧タブ（注文日、名前、商品名のみ表示） -->
+    <div id="summary-tab" class="tab-content">
+      <div class="list-header">
+        <input type="text" id="summary-search-input" class="search-input" placeholder="顧客名で検索...">
+      </div>
+      <div id="summary-list" class="summary-list">
+        <!-- 注文サマリーリストはJavaScriptで動的に生成 -->
+      </div>
+    </div>
+
+    <!-- 詳細タブ -->
     <div id="list-tab" class="tab-content">
       <div class="list-header">
         <input type="text" id="search-input" class="search-input" placeholder="顧客名・電話番号で検索...">
@@ -232,7 +255,7 @@
         </div>
         <div class="modal-actions">
           <button id="back-to-list-btn" class="btn btn-secondary">一覧に戻る</button>
-          <button id="download-pdf-btn" class="btn btn-primary">📥 PDFダウンロード</button>
+          <button id="download-pdf-btn" class="btn btn-primary">🖨️ 印刷</button>
         </div>
       </div>
     </div>
