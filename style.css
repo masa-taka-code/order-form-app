@@ -564,6 +564,46 @@ textarea {
   font-size: 0.9rem;
 }
 
+/* === サマリーリスト（一覧タブ用・コンパクト表示） === */
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary-item {
+  display: grid;
+  grid-template-columns: 100px 120px 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.summary-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.summary-item-date {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.summary-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summary-item-products {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .empty-list {
   text-align: center;
   padding: 60px 20px;
@@ -1134,5 +1174,42 @@ textarea {
   .payment-methods .radio-label {
     padding: 10px 6px;
     font-size: 0.85rem;
+  }
+}
+
+/* iPad向け文字サイズ拡大 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    font-size: 22px;
+  }
+
+  .form-group label {
+    font-size: 1rem;
+  }
+
+  input[type="text"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 1.1rem;
+    padding: 16px 18px;
+  }
+
+  .btn {
+    font-size: 1.1rem;
+    padding: 16px 24px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .radio-label,
+  .checkbox-label {
+    font-size: 1.1rem;
+    padding: 14px 18px;
   }
 }
