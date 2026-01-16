@@ -49,8 +49,41 @@
               <input type="text" id="staff-name" name="staffName" placeholder="担当者名">
             </div>
             <div class="form-group">
-              <label for="order-datetime">ご注文日時</label>
-              <input type="datetime-local" id="order-datetime" name="orderDatetime">
+              <label>ご注文日時</label>
+              <div class="datetime-group">
+                <input type="date" id="order-date" name="orderDate">
+                <select id="order-hour" name="orderHour">
+                  <option value="">時</option>
+                  <option value="00">0時</option>
+                  <option value="01">1時</option>
+                  <option value="02">2時</option>
+                  <option value="03">3時</option>
+                  <option value="04">4時</option>
+                  <option value="05">5時</option>
+                  <option value="06">6時</option>
+                  <option value="07">7時</option>
+                  <option value="08">8時</option>
+                  <option value="09">9時</option>
+                  <option value="10">10時</option>
+                  <option value="11">11時</option>
+                  <option value="12">12時</option>
+                  <option value="13">13時</option>
+                  <option value="14">14時</option>
+                  <option value="15">15時</option>
+                  <option value="16">16時</option>
+                  <option value="17">17時</option>
+                  <option value="18">18時</option>
+                  <option value="19">19時</option>
+                  <option value="20">20時</option>
+                  <option value="21">21時</option>
+                  <option value="22">22時</option>
+                  <option value="23">23時</option>
+                </select>
+                <select id="order-minute" name="orderMinute">
+                  <option value="00">00分</option>
+                  <option value="30">30分</option>
+                </select>
+              </div>
             </div>
             <div class="form-group">
               <label>受け取り方法</label>
@@ -90,19 +123,6 @@
         <!-- 注文商品 -->
         <section class="form-section">
           <h2 class="section-title">ご注文品</h2>
-          <div class="form-group">
-            <label>税表示</label>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input type="radio" name="taxType" value="税込" checked>
-                <span>税込</span>
-              </label>
-              <label class="radio-label">
-                <input type="radio" name="taxType" value="税抜">
-                <span>税抜</span>
-              </label>
-            </div>
-          </div>
           <div id="products-container" class="products-container">
             <!-- 商品行はJavaScriptで動的に追加 -->
           </div>
@@ -132,7 +152,6 @@
               <select id="payment-type" name="paymentType">
                 <option value="">（選択してください）</option>
                 <option value="代スミ">代スミ</option>
-                <option value="未収">未収</option>
                 <option value="売掛">売掛</option>
                 <option value="代引">代引</option>
               </select>
@@ -174,6 +193,10 @@
             <label class="checkbox-label">
               <input type="checkbox" name="departments" value="日配">
               <span>日配</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="departments" value="食品">
+              <span>食品</span>
             </label>
             <label class="checkbox-label">
               <input type="checkbox" name="departments" value="酒">
