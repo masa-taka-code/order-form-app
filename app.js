@@ -134,19 +134,42 @@ function addProductRow() {
 }
 
 function updateTotal() {
-    let total = 0;
+    // 税率別の対象額を集計（一括計算方式）
+    let subtotal = 0;
+    let taxExcluded8Total = 0;
+    let taxExcluded10Total = 0;
+
     productsContainer.querySelectorAll('.product-row').forEach(row => {
+        const name = row.querySelector('.product-name').value;
         const quantity = parseInt(row.querySelector('.product-quantity').value) || 0;
         const price = parseInt(row.querySelector('.product-price').value) || 0;
         const taxType = row.querySelector('.product-tax-type').value;
-        const taxRate = parseInt(row.querySelector('.product-tax-rate').value) / 100;
+        const taxRate = parseInt(row.querySelector('.product-tax-rate').value);
 
-        let subtotal = quantity * price;
-        if (taxType === '税抜') {
-            subtotal = Math.floor(subtotal * (1 + taxRate));
+        if (name && (quantity > 0 || price > 0)) {
+            const baseAmount = quantity * price;
+
+            if (taxType === '税抜') {
+                // 外税：対象額を税率別に集計
+                if (taxRate === 8) {
+                    taxExcluded8Total += baseAmount;
+                } else if (taxRate === 10) {
+                    taxExcluded10Total += baseAmount;
+                }
+                subtotal += baseAmount;
+            } else {
+                // 税込：そのまま小計に加算
+                subtotal += baseAmount;
+            }
         }
-        total += subtotal;
     });
+
+    // 税額を一括計算（対象額合計 × 税率、端数切り捨て）
+    const tax8Amount = Math.floor(taxExcluded8Total * 8 / 100);
+    const tax10Amount = Math.floor(taxExcluded10Total * 10 / 100);
+
+    // 合計 = 小計 + 外税額
+    const total = subtotal + tax8Amount + tax10Amount;
 
     totalAmountDisplay.textContent = `¥${total.toLocaleString()}`;
 }
@@ -164,33 +187,48 @@ function initForm() {
 
 function getFormData() {
     const formData = new FormData(orderForm);
+
+    // ご注文日時を新形式で組み立て（日付＋時間セレクト＋分セレクト）
+    const orderDate = formData.get('orderDate') || '';
+    const orderHour = formData.get('orderHour') || '';
+    const orderMinute = formData.get('orderMinute') || '00';
+    let orderDatetime = '';
+    if (orderDate) {
+        // 時間がある場合は時間も含める
+        if (orderHour) {
+            orderDatetime = `${orderDate}T${orderHour}:${orderMinute}`;
+        } else {
+            orderDatetime = `${orderDate}T00:${orderMinute}`;
+        }
+    }
+
     const data = {
         receptionDate: formData.get('receptionDate'),
         receptionMethod: formData.get('receptionMethod'),
         staffName: formData.get('staffName'),
-        orderDatetime: formData.get('orderDatetime'),
+        orderDatetime: orderDatetime,
         deliveryMethod: formData.get('deliveryMethod'),
         customerName: formData.get('customerName'),
         phoneNumber: formData.get('phoneNumber'),
         deliveryAddress: formData.get('deliveryAddress'),
-        taxType: formData.get('taxType'),
         notes: formData.get('notes'),
         paymentType: formData.get('paymentType'),
         invoiceRequired: formData.get('invoiceRequired') === '要',
         billingName: formData.get('billingName'),
         departments: formData.getAll('departments'),
         products: [],
-        // 詳細な税計算情報
-        subtotal: 0,           // 小計（税抜合計）
-        taxExcluded8Total: 0,  // 外税8%対象額
-        taxExcluded10Total: 0, // 外税10%対象額
-        tax8Amount: 0,         // 外税額8%
-        tax10Amount: 0,        // 外税額10%
+        // 詳細な税計算情報（レシート方式：一括計算）
+        subtotal: 0,           // 小計（商品金額の合計）
+        taxExcluded8Total: 0,  // 外税8%対象額（税抜）
+        taxExcluded10Total: 0, // 外税10%対象額（税抜）
+        tax8Amount: 0,         // 外税額8%（一括計算）
+        tax10Amount: 0,        // 外税額10%（一括計算）
         itemCount: 0,          // 買上点数
         totalAmount: 0,        // 合計（税込）
-        innerTaxTotal: 0       // 内消費税等
+        innerTaxTotal: 0       // 内消費税等（= 外税額8% + 外税額10%）
     };
 
+    // まず商品をすべて処理して、税率別の対象額を集計
     productsContainer.querySelectorAll('.product-row').forEach(row => {
         const name = row.querySelector('.product-name').value;
         const quantity = parseInt(row.querySelector('.product-quantity').value) || 0;
@@ -198,35 +236,43 @@ function getFormData() {
         const taxType = row.querySelector('.product-tax-type').value;
         const taxRate = parseInt(row.querySelector('.product-tax-rate').value);
 
-        if (name || quantity || price) {
+        if (name && (quantity > 0 || price > 0)) {
             const baseAmount = quantity * price;
-            let subtotal = baseAmount;
-            let taxAmount = 0;
 
             if (taxType === '税抜') {
-                // 外税：税抜価格から税額を計算
-                taxAmount = Math.floor(baseAmount * taxRate / 100);
-                subtotal = baseAmount + taxAmount;
-
+                // 外税：対象額を税率別に集計（税額は後で一括計算）
                 if (taxRate === 8) {
                     data.taxExcluded8Total += baseAmount;
-                    data.tax8Amount += taxAmount;
                 } else if (taxRate === 10) {
                     data.taxExcluded10Total += baseAmount;
-                    data.tax10Amount += taxAmount;
                 }
+                data.subtotal += baseAmount;
             } else {
-                // 税込：内税を逆算
-                const innerTax = Math.floor(baseAmount * taxRate / (100 + taxRate));
-                data.innerTaxTotal += innerTax;
+                // 税込：そのまま小計に加算
+                data.subtotal += baseAmount;
             }
 
-            data.products.push({ name, quantity, price, taxType, taxRate, subtotal, taxAmount });
-            data.subtotal += baseAmount;
-            data.totalAmount += subtotal;
+            data.products.push({
+                name,
+                quantity,
+                price,
+                taxType,
+                taxRate,
+                baseAmount
+            });
             data.itemCount += quantity;
         }
     });
+
+    // 税額を一括計算（対象額合計 × 税率、端数切り捨て）
+    data.tax8Amount = Math.floor(data.taxExcluded8Total * 8 / 100);
+    data.tax10Amount = Math.floor(data.taxExcluded10Total * 10 / 100);
+
+    // 内消費税等 = 外税額の合計（レシート方式）
+    data.innerTaxTotal = data.tax8Amount + data.tax10Amount;
+
+    // 合計 = 小計 + 外税額
+    data.totalAmount = data.subtotal + data.tax8Amount + data.tax10Amount;
 
     return data;
 }
@@ -400,56 +446,100 @@ document.getElementById('detail-edit-btn').addEventListener('click', () => { det
 
 // ===== 編集機能 =====
 function editOrder(id) {
-    const orders = getOrders();
-    const order = orders.find(o => o.id === id);
-    if (!order) return;
+    try {
+        const orders = getOrders();
+        const order = orders.find(o => o.id === id);
+        if (!order) {
+            alert('注文が見つかりませんでした。');
+            return;
+        }
 
-    // 編集モードに設定
-    editingOrderId = id;
+        console.log('編集対象の注文:', order); // デバッグ用
 
-    // 入力タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="input"]').classList.add('active');
-    tabContents.forEach(c => c.classList.remove('active'));
-    document.getElementById('input-tab').classList.add('active');
+        // 編集モードに設定
+        editingOrderId = id;
 
-    // フォームにデータを読み込む
-    document.getElementById('reception-date').value = order.receptionDate || '';
-    document.querySelector(`input[name="receptionMethod"][value="${order.receptionMethod}"]`).checked = true;
-    document.getElementById('staff-name').value = order.staffName || '';
-    document.getElementById('order-datetime').value = order.orderDatetime || '';
-    document.querySelector(`input[name="deliveryMethod"][value="${order.deliveryMethod}"]`).checked = true;
-    document.getElementById('customer-name').value = order.customerName || '';
-    document.getElementById('phone-number').value = order.phoneNumber || '';
-    document.getElementById('delivery-address').value = order.deliveryAddress || '';
-    document.querySelector(`input[name="taxType"][value="${order.taxType}"]`).checked = true;
-    document.getElementById('notes').value = order.notes || '';
-    // 新しい代金・納品請求書フォームに対応
-    document.getElementById('payment-type').value = order.paymentType || order.paymentMethod || '';
-    document.getElementById('invoice-required').checked = order.invoiceRequired || false;
-    document.getElementById('billing-name').value = order.billingName || '';
+        // 入力タブに切り替え
+        navTabs.forEach(t => t.classList.remove('active'));
+        document.querySelector('[data-tab="input"]').classList.add('active');
+        tabContents.forEach(c => c.classList.remove('active'));
+        document.getElementById('input-tab').classList.add('active');
 
-    // 部門チェックボックス
-    document.querySelectorAll('input[name="departments"]').forEach(cb => {
-        cb.checked = order.departments && order.departments.includes(cb.value);
-    });
+        // フォームにデータを読み込む（安全にチェック）
+        const setValueSafe = (elId, value) => {
+            const el = document.getElementById(elId);
+            if (el) el.value = value || '';
+        };
 
-    // 商品リスト
-    productsContainer.innerHTML = '';
-    if (order.products && order.products.length > 0) {
-        order.products.forEach(p => {
-            const row = createProductRow();
-            row.querySelector('.product-name').value = p.name || '';
-            row.querySelector('.product-quantity').value = p.quantity || 1;
-            row.querySelector('.product-price').value = p.price || 0;
-            productsContainer.appendChild(row);
+        const setCheckedSafe = (elId, checked) => {
+            const el = document.getElementById(elId);
+            if (el) el.checked = !!checked;
+        };
+
+        setValueSafe('reception-date', order.receptionDate);
+
+        // 受付方法（安全に選択）
+        const receptionMethodRadio = document.querySelector(`input[name="receptionMethod"][value="${order.receptionMethod}"]`);
+        if (receptionMethodRadio) receptionMethodRadio.checked = true;
+
+        setValueSafe('staff-name', order.staffName);
+
+        // ご注文日時を新形式で読み込む（日付＋時間セレクト＋分セレクト）
+        if (order.orderDatetime) {
+            const dt = order.orderDatetime.split('T');
+            setValueSafe('order-date', dt[0]);
+            if (dt[1]) {
+                const timeParts = dt[1].split(':');
+                setValueSafe('order-hour', timeParts[0]);
+                const orderMinuteEl = document.getElementById('order-minute');
+                if (orderMinuteEl) orderMinuteEl.value = timeParts[1] === '30' ? '30' : '00';
+            }
+        }
+
+        // 受け取り方法（安全に選択）
+        const deliveryMethodRadio = document.querySelector(`input[name="deliveryMethod"][value="${order.deliveryMethod}"]`);
+        if (deliveryMethodRadio) deliveryMethodRadio.checked = true;
+
+        setValueSafe('customer-name', order.customerName);
+        setValueSafe('phone-number', order.phoneNumber);
+        setValueSafe('delivery-address', order.deliveryAddress);
+        setValueSafe('notes', order.notes);
+        setValueSafe('payment-type', order.paymentType || order.paymentMethod);
+        setCheckedSafe('invoice-required', order.invoiceRequired);
+        setValueSafe('billing-name', order.billingName);
+
+        // 部門チェックボックス
+        document.querySelectorAll('input[name="departments"]').forEach(cb => {
+            cb.checked = order.departments && order.departments.includes(cb.value);
         });
-    } else {
-        addProductRow();
-    }
-    updateTotal();
 
-    alert('編集モードです。変更後「保存」ボタンを押してください。');
+        // 商品リスト（税設定も含めて読み込む）
+        productsContainer.innerHTML = '';
+        if (order.products && order.products.length > 0) {
+            order.products.forEach(p => {
+                const row = createProductRow();
+                row.querySelector('.product-name').value = p.name || '';
+                row.querySelector('.product-quantity').value = p.quantity || 1;
+                row.querySelector('.product-price').value = p.price || 0;
+                // 商品ごとの税設定を反映
+                const taxTypeEl = row.querySelector('.product-tax-type');
+                const taxRateEl = row.querySelector('.product-tax-rate');
+                if (taxTypeEl && p.taxType) taxTypeEl.value = p.taxType;
+                if (taxRateEl && p.taxRate) taxRateEl.value = p.taxRate;
+                productsContainer.appendChild(row);
+                // 小計を更新するためにinputイベントをトリガー
+                row.querySelector('.product-price').dispatchEvent(new Event('input'));
+            });
+        } else {
+            addProductRow();
+        }
+        updateTotal();
+
+        alert('編集モードです。変更後「保存」ボタンを押してください。');
+    } catch (error) {
+        console.error('編集エラー:', error);
+        alert('編集中にエラーが発生しました。コンソールを確認してください。');
+    }
 }
 
 function showPrintPreview(id) {
@@ -458,16 +548,161 @@ function showPrintPreview(id) {
     if (!order) return;
     currentOrderId = id;
 
-    // 印刷用HTMLを生成（A4サイズ、店舗情報付き）
-    const printHtml = generatePrintHtml(order);
+    // PDF印刷と同じHTMLを生成
+    const printHtml = generatePrintHtmlForPaper(order);
+
+    // PDF印刷と同じスタイルを埋め込む（完全一致）
+    const printStyles = `
+        <style>
+            /* === リセット === */
+            .print-preview-a4 * { margin: 0; padding: 0; box-sizing: border-box; }
+            
+            /* === 紙コンテナ === */
+            .print-preview-a4 .paper {
+                width: 210mm;
+                min-height: 297mm;
+                padding: 15mm;
+                margin: 0 auto;
+                background: white;
+                color: black;
+                font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+                font-size: 11pt;
+                line-height: 1.5;
+                position: relative;
+            }
+            
+            /* === タイトル === */
+            .print-preview-a4 .paper-title {
+                text-align: center;
+                font-size: 18pt;
+                font-weight: bold;
+                letter-spacing: 2pt;
+                margin-bottom: 8mm;
+            }
+            
+            /* === メインテーブル === */
+            .print-preview-a4 .paper-table {
+                width: 100%;
+                border-collapse: collapse;
+                border: 1px solid #000;
+            }
+            
+            .print-preview-a4 .paper-table th,
+            .print-preview-a4 .paper-table td {
+                border: 1px solid #000;
+                padding: 2mm 3mm;
+                vertical-align: middle;
+                font-size: 10.5pt;
+            }
+            
+            .print-preview-a4 .paper-table th {
+                background: #f0f0f0;
+                font-weight: bold;
+                text-align: center;
+                width: 25mm;
+            }
+            
+            .print-preview-a4 .paper-table td {
+                text-align: left;
+            }
+            
+            /* === 商品テーブル === */
+            .print-preview-a4 .product-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            .print-preview-a4 .product-table th,
+            .print-preview-a4 .product-table td {
+                border: 1px solid #000;
+                padding: 1.5mm 2mm;
+                font-size: 10pt;
+            }
+            
+            .print-preview-a4 .product-table th {
+                background: #f5f5f5;
+                font-weight: bold;
+                text-align: center;
+            }
+            
+            .print-preview-a4 .product-table td {
+                text-align: center;
+            }
+            
+            .print-preview-a4 .product-table td:first-child {
+                text-align: left;
+            }
+            
+            .print-preview-a4 .product-table td:last-child {
+                text-align: right;
+            }
+            
+            /* === 合計エリア === */
+            .print-preview-a4 .total-cell {
+                text-align: right !important;
+                font-weight: bold;
+                font-size: 10.5pt;
+                padding: 2mm !important;
+                vertical-align: top !important;
+                width: 50mm;
+            }
+            
+            .print-preview-a4 .total-details {
+                text-align: right;
+            }
+            
+            .print-preview-a4 .total-detail-item {
+                font-size: 9pt;
+                line-height: 1.4;
+                white-space: nowrap;
+            }
+            
+            .print-preview-a4 .total-detail-item.total-main {
+                font-size: 12pt;
+                font-weight: bold;
+                border-top: 1px solid #000;
+                padding-top: 1mm;
+                margin-top: 1mm;
+            }
+            
+            /* === チェックボックス === */
+            .print-preview-a4 .check-group {
+                display: inline;
+            }
+            
+            .print-preview-a4 .check-item {
+                display: inline-block;
+                margin-right: 4mm;
+                font-size: 10.5pt;
+            }
+            
+            .print-preview-a4 .check-box {
+                display: inline-block;
+                width: 4mm;
+                height: 4mm;
+                border: 1px solid #000;
+                text-align: center;
+                line-height: 4mm;
+                font-size: 9pt;
+                margin-right: 1mm;
+                vertical-align: middle;
+            }
+            
+            /* === 店舗情報 === */
+            .print-preview-a4 .store-info {
+                text-align: right;
+                font-size: 11pt;
+                line-height: 1.6;
+                margin-top: 5mm;
+                padding-right: 5mm;
+            }
+        </style>
+    `;
 
     printContent.innerHTML = `
+        ${printStyles}
         <div class="print-preview-a4">
             ${printHtml}
-            <div class="print-preview-store-info">
-                <div>スーパーマーケット玉木屋</div>
-                <div>0193-63-2711</div>
-            </div>
         </div>
     `;
     printModal.classList.add('active');
@@ -498,7 +733,7 @@ function executePrintForOrder(order) {
             background: white;
             color: black;
             font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
-            font-size: 15pt;
+            font-size: 11pt;
             line-height: 1.5;
             position: relative;
         }
@@ -506,32 +741,32 @@ function executePrintForOrder(order) {
         /* === タイトル === */
         .paper-title {
             text-align: center;
-            font-size: 22pt;
+            font-size: 18pt;
             font-weight: bold;
-            letter-spacing: 4pt;
-            margin-bottom: 10mm;
+            letter-spacing: 2pt;
+            margin-bottom: 8mm;
         }
         
-        /* === メインテーブル（印刷に強いtable構造） === */
+        /* === メインテーブル === */
         .paper-table {
             width: 100%;
             border-collapse: collapse;
-            border: 0.5mm solid #000;
+            border: 1px solid #000;
         }
         
         .paper-table th,
         .paper-table td {
-            border: 0.3mm solid #000;
-            padding: 2.5mm 3.5mm;
+            border: 1px solid #000;
+            padding: 2mm 3mm;
             vertical-align: middle;
-            font-size: 14pt;
+            font-size: 10.5pt;
         }
         
         .paper-table th {
             background: #f0f0f0;
             font-weight: bold;
             text-align: center;
-            width: 28mm;
+            width: 25mm;
         }
         
         .paper-table td {
@@ -546,9 +781,9 @@ function executePrintForOrder(order) {
         
         .product-table th,
         .product-table td {
-            border: 0.2mm solid #000;
-            padding: 2mm 2.5mm;
-            font-size: 13pt;
+            border: 1px solid #000;
+            padding: 1.5mm 2mm;
+            font-size: 10pt;
         }
         
         .product-table th {
@@ -570,13 +805,14 @@ function executePrintForOrder(order) {
         }
         
         /* === 合計エリア === */
+        /* === 合計エリア === */
         .total-cell {
             text-align: right !important;
             font-weight: bold;
-            font-size: 11pt;
-            padding: 3mm !important;
+            font-size: 10.5pt;
+            padding: 2mm !important;
             vertical-align: top !important;
-            width: 45mm;
+            width: 50mm;
         }
         
         .total-details {
@@ -584,17 +820,17 @@ function executePrintForOrder(order) {
         }
         
         .total-detail-item {
-            font-size: 10pt;
+            font-size: 9pt;
             line-height: 1.4;
             white-space: nowrap;
         }
         
         .total-detail-item.total-main {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: bold;
-            border-top: 0.3mm solid #000;
-            padding-top: 2mm;
-            margin-top: 2mm;
+            border-top: 1px solid #000;
+            padding-top: 1mm;
+            margin-top: 1mm;
         }
         
         /* === チェックボックス風 === */
@@ -604,30 +840,29 @@ function executePrintForOrder(order) {
         
         .check-item {
             display: inline-block;
-            margin-right: 5mm;
-            font-size: 14pt;
+            margin-right: 4mm;
+            font-size: 10.5pt;
         }
         
         .check-box {
             display: inline-block;
-            width: 5mm;
-            height: 5mm;
-            border: 0.3mm solid #000;
+            width: 4mm;
+            height: 4mm;
+            border: 1px solid #000;
             text-align: center;
-            line-height: 5mm;
-            font-size: 11pt;
-            margin-right: 1.5mm;
+            line-height: 4mm;
+            font-size: 9pt;
+            margin-right: 1mm;
             vertical-align: middle;
         }
         
-        /* === 店舗情報（紙の右下、左寄せ調整） === */
+        /* === 店舗情報（表の下に相対配置） === */
         .store-info {
-            position: absolute;
-            bottom: 15mm;
-            right: 25mm;
             text-align: right;
-            font-size: 10pt;
+            font-size: 11pt;
             line-height: 1.6;
+            margin-top: 5mm;
+            padding-right: 5mm;
         }
         
         /* === 印刷時のスタイル === */
@@ -653,9 +888,8 @@ function executePrintForOrder(order) {
             }
             
             .store-info {
-                position: fixed;
-                bottom: 0;
-                right: 0;
+                position: relative;
+                margin-top: 10mm;
             }
         }
         
@@ -771,15 +1005,15 @@ function generatePrintHtmlForPaper(order) {
     // チェックボックス生成ヘルパー
     const checkbox = (checked) => `<span class="check-box">${checked ? '✓' : ''}</span>`;
 
-    // 代金オプション
+    // 代金オプション（未収を削除）
     const paymentType = order.paymentType || order.paymentMethod || '';
-    const paymentOptions = ['代スミ', '未収', '売掛', '代引'];
+    const paymentOptions = ['代スミ', '売掛', '代引'];
     const paymentChecks = paymentOptions.map(m =>
         `<span class="check-item">${checkbox(paymentType === m)}${m}</span>`
     ).join('');
 
-    // 部門チェック
-    const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配', '酒', '菓子', '雑貨'];
+    // 部門チェック（食品を追加、日配と酒の間）
+    const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配', '食品', '酒', '菓子', '雑貨'];
     const deptChecks = deptList.map(d =>
         `<span class="check-item">${checkbox(departments.includes(d))}${d}</span>`
     ).join('');
@@ -822,16 +1056,16 @@ function generatePrintHtmlForPaper(order) {
         <tr>
             <th>受付日</th>
             <td>${formatDate(order.receptionDate)}</td>
-            <td style="width: 20mm; text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
-            <td style="width: 20mm; text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
-            <th>受注者</th>
-            <td>${escapeHtml(order.staffName || '')}</td>
+            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
+            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
+            <th rowspan="2">受注者</th>
+            <td rowspan="2">${escapeHtml(order.staffName || '')}</td>
         </tr>
         <tr>
             <th>ご注文日時</th>
-            <td colspan="3">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
-            <td style="width: 20mm; text-align: center;">${checkbox(order.deliveryMethod === '配達')}配達</td>
-            <td style="width: 20mm; text-align: center;">${checkbox(order.deliveryMethod === '来店')}来店</td>
+            <td>${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
+            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '配達')}配達</td>
+            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '来店')}来店</td>
         </tr>
         <tr>
             <th>お客様氏名</th>
