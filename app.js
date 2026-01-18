@@ -394,30 +394,28 @@ if (summarySearchInput) {
 
 // ひらがなをカタカナに変換する関数
 function toKatakana(str) {
-    let result = '';
-    for (let i = 0; i < str.length; i++) {
-        const code = str.charCodeAt(i);
+    if (!str) return str;
+    const chars = Array.from(str);
+    return chars.map(char => {
+        const code = char.charCodeAt(0);
         // ひらがな範囲（ぁ-ゖ: U+3041-U+3096）をカタカナに変換
         if (code >= 0x3041 && code <= 0x3096) {
-            result += String.fromCharCode(code + 0x60);
-        } else {
-            result += str[i];
+            return String.fromCharCode(code + 0x60);
         }
-    }
-    return result;
+        return char;
+    }).join('');
 }
 
 // お客様氏名にカタカナ変換と「様」を自動付与
-if (customerNameInput) {
+if (customerNameInput && !customerNameInput.dataset.listenerAdded) {
+    customerNameInput.dataset.listenerAdded = 'true';
     customerNameInput.addEventListener('blur', () => {
         let name = customerNameInput.value.trim();
-        if (name) {
+        if (name && !name.endsWith('様')) {
             // ひらがなをカタカナに変換
             name = toKatakana(name);
-            // 「様」がなければ追加
-            if (!name.endsWith('様')) {
-                name = name + ' 様';
-            }
+            // 「様」を追加
+            name = name + ' 様';
             customerNameInput.value = name;
         }
     });
