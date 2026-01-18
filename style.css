@@ -1301,43 +1301,50 @@ textarea {
     padding: 14px;
   }
 
-  /* モバイル表示順序: 商品名→個数→単価→税込/税抜→税率→小計→削除 */
+  /* 商品名（1番目） */
   .product-row .product-name {
     width: 100%;
     order: 1;
   }
 
+  /* 個数（2番目） */
   .product-row .product-quantity {
     flex: 1;
-    min-width: 70px;
+    min-width: 60px;
     order: 2;
   }
 
+  /* 単価ラッパー（3番目） */
   .product-row .product-price-wrapper {
-    flex: 2;
+    flex: 1;
     min-width: 100px;
     order: 3;
   }
 
+  /* 税込/税抜セレクト（4番目） */
   .product-row .product-tax-type {
     flex: 1;
-    min-width: 60px;
+    min-width: 70px;
     order: 4;
   }
 
+  /* 税率セレクト（5番目） */
   .product-row .product-tax-rate {
     flex: 1;
-    min-width: 50px;
+    min-width: 60px;
     order: 5;
   }
 
+  /* 小計（6番目） */
   .product-row .product-subtotal {
     flex: 1;
     min-width: 80px;
     order: 6;
     text-align: right;
+    font-weight: bold;
   }
 
+  /* 削除ボタン（7番目） */
   .product-row .remove-product-btn {
     width: 44px;
     height: 44px;
