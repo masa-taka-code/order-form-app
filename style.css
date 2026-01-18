@@ -1242,6 +1242,27 @@ textarea {
     max-width: 100%;
     font-size: 16px;
     /* iOSでズーム防止 */
+    padding: 12px 14px;
+  }
+
+  /* ご注文日時グループ */
+  .datetime-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .datetime-group input[type="date"] {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .datetime-group select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 80px;
+    font-size: 16px;
+    padding: 12px 10px;
   }
 
   /* ラジオボタン・チェックボックスを横並びで均等配置 */
@@ -1403,16 +1424,28 @@ textarea {
   }
 }
 
-/* iPad向け文字サイズ拡大 */
+/* iPad向け文字サイズと体裁調整 */
 @media (min-width: 768px) and (max-width: 1024px) {
   html {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .form-group label {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
+  /* フォームグリッドを1列に */
+  .form-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px;
+  }
+
+  .form-group {
+    width: 100% !important;
+  }
+
+  /* 日付入力欄 */
   input[type="text"],
   input[type="tel"],
   input[type="date"],
@@ -1420,22 +1453,51 @@ textarea {
   input[type="number"],
   textarea,
   select {
-    font-size: 1.1rem;
-    padding: 16px 18px;
+    font-size: 1rem;
+    padding: 14px 16px;
+    width: 100%;
   }
 
-  .btn {
-    font-size: 1.1rem;
-    padding: 16px 24px;
+  /* ご注文日時グループ */
+  .datetime-group {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .section-title {
-    font-size: 1.2rem;
+  .datetime-group input[type="date"] {
+    flex: 1 1 auto;
+    min-width: 150px;
+  }
+
+  .datetime-group select {
+    flex: 0 0 auto;
+    min-width: 90px;
+  }
+
+  /* ラジオボタン・チェックボックス */
+  .radio-group,
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .radio-label,
   .checkbox-label {
+    flex: 1 1 auto;
+    min-width: 80px;
+    font-size: 1rem;
+    padding: 12px 14px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .btn {
+    font-size: 1rem;
+    padding: 14px 20px;
+  }
+
+  .section-title {
     font-size: 1.1rem;
-    padding: 14px 18px;
   }
 }
