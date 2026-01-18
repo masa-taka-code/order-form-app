@@ -1301,28 +1301,48 @@ textarea {
     padding: 14px;
   }
 
-  .product-row input[type="text"] {
+  /* モバイル表示順序: 商品名→個数→単価→税込/税抜→税率→小計→削除 */
+  .product-row .product-name {
     width: 100%;
     order: 1;
   }
 
-  .product-row input[type="number"] {
+  .product-row .product-quantity {
     flex: 1;
-    min-width: 80px;
+    min-width: 70px;
     order: 2;
   }
 
-  .product-subtotal {
+  .product-row .product-price-wrapper {
+    flex: 2;
+    min-width: 100px;
+    order: 3;
+  }
+
+  .product-row .product-tax-type {
+    flex: 1;
+    min-width: 60px;
+    order: 4;
+  }
+
+  .product-row .product-tax-rate {
+    flex: 1;
+    min-width: 50px;
+    order: 5;
+  }
+
+  .product-row .product-subtotal {
     flex: 1;
     min-width: 80px;
-    order: 3;
+    order: 6;
+    text-align: right;
   }
 
   .product-row .remove-product-btn {
     width: 44px;
     height: 44px;
     border-radius: var(--radius-sm);
-    order: 4;
+    order: 7;
   }
 
   /* ヘッダー・ボタン調整 */
