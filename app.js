@@ -392,8 +392,26 @@ if (summarySearchInput) {
     summarySearchInput.addEventListener('input', renderSummaryList);
 }
 
-// お客様氏名に「様」を自動付与
+// ひらがなをカタカナに変換する関数
+function toKatakana(str) {
+    return str.replace(/[\u3041-\u3096]/g, function (match) {
+        return String.fromCharCode(match.charCodeAt(0) + 0x60);
+    });
+}
+
+// お客様氏名のカタカナ変換と「様」自動付与
 if (customerNameInput) {
+    // 入力中にひらがなをカタカナに自動変換
+    customerNameInput.addEventListener('input', () => {
+        const cursorPosition = customerNameInput.selectionStart;
+        const converted = toKatakana(customerNameInput.value);
+        if (converted !== customerNameInput.value) {
+            customerNameInput.value = converted;
+            customerNameInput.setSelectionRange(cursorPosition, cursorPosition);
+        }
+    });
+
+    // フォーカスが外れたときに「様」を自動付与
     customerNameInput.addEventListener('blur', () => {
         let name = customerNameInput.value.trim();
         if (name && !name.endsWith('様')) {
