@@ -399,23 +399,18 @@ function toKatakana(str) {
     });
 }
 
-// お客様氏名のカタカナ変換と「様」自動付与
+// お客様氏名にカタカナ変換と「様」を自動付与
 if (customerNameInput) {
-    // 入力中にひらがなをカタカナに自動変換
-    customerNameInput.addEventListener('input', () => {
-        const cursorPosition = customerNameInput.selectionStart;
-        const converted = toKatakana(customerNameInput.value);
-        if (converted !== customerNameInput.value) {
-            customerNameInput.value = converted;
-            customerNameInput.setSelectionRange(cursorPosition, cursorPosition);
-        }
-    });
-
-    // フォーカスが外れたときに「様」を自動付与
     customerNameInput.addEventListener('blur', () => {
         let name = customerNameInput.value.trim();
-        if (name && !name.endsWith('様')) {
-            customerNameInput.value = name + ' 様';
+        if (name) {
+            // ひらがなをカタカナに変換
+            name = toKatakana(name);
+            // 「様」がなければ追加
+            if (!name.endsWith('様')) {
+                name = name + ' 様';
+            }
+            customerNameInput.value = name;
         }
     });
 }
