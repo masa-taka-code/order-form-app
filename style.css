@@ -288,7 +288,8 @@ textarea {
 
 .product-row {
   display: grid;
-  grid-template-columns: 1fr 70px 140px 70px 60px 90px 36px;
+  /* HTML順序: 商品名(1fr) | 単価(150px) | 個数(80px) | 税区分(75px) | 税率(65px) | 小計(100px) | 削除(44px) */
+  grid-template-columns: 1fr 150px 80px 75px 65px 100px 44px;
   gap: 8px;
   align-items: center;
   background: var(--bg-tertiary);
@@ -348,7 +349,7 @@ textarea {
   background: var(--bg-color);
   border-radius: var(--radius-sm);
   font-weight: 600;
-  color: var(--success-color);
+  color: #ffffff;
   font-size: 0.95rem;
 }
 
@@ -401,6 +402,7 @@ textarea {
   border-radius: var(--radius-sm);
   font-size: 1.2rem;
   font-weight: bold;
+  color: #ffffff;
 }
 
 .btn {
@@ -1212,8 +1214,8 @@ textarea {
   }
 }
 
-/* モバイル・タブレット向けレスポンシブ (1024px以下) */
-@media (max-width: 1024px) {
+/* モバイル向けレスポンシブ (767px以下) */
+@media (max-width: 767px) {
   html {
     font-size: 15px;
   }
@@ -1297,55 +1299,62 @@ textarea {
   .product-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px;
+    gap: 8px;
+    /* 10pxから縮小してスペース確保 */
+    padding: 12px;
   }
 
-  /* 商品名（1番目） */
+  /* 商品名（1番目：全幅） */
   .product-row .product-name {
     width: 100%;
     order: 1;
   }
 
-  /* 個数（2番目） */
-  .product-row .product-quantity {
-    flex: 1;
-    min-width: 60px;
+  /* 単価ラッパー（2番目：幅広） */
+  .product-row .product-price-wrapper {
+    flex: 2 1 140px;
+    /* 個数より優先して幅確保 */
+    min-width: 140px;
     order: 2;
   }
 
-  /* 単価ラッパー（3番目） */
-  .product-row .product-price-wrapper {
-    flex: 1;
-    min-width: 100px;
+  /* 個数（3番目） */
+  .product-row .product-quantity {
+    flex: 1 1 80px;
+    min-width: 80px;
     order: 3;
   }
 
   /* 税込/税抜セレクト（4番目） */
   .product-row .product-tax-type {
-    flex: 1;
+    flex: 1 1 70px;
     min-width: 70px;
     order: 4;
   }
 
   /* 税率セレクト（5番目） */
   .product-row .product-tax-rate {
-    flex: 1;
+    flex: 1 1 60px;
     min-width: 60px;
     order: 5;
   }
 
-  /* 小計（6番目） */
+  /* 小計（6番目：残り幅埋め） */
   .product-row .product-subtotal {
-    flex: 1;
-    min-width: 80px;
+    flex: 1 1 auto;
+    min-width: 100px;
     order: 6;
     text-align: right;
     font-weight: bold;
+    display: flex;
+    /* 上下中央揃えのため */
+    align-items: center;
+    justify-content: flex-end;
   }
 
-  /* 削除ボタン（7番目） */
+  /* 削除ボタン（7番目：固定幅） */
   .product-row .remove-product-btn {
+    flex: 0 0 44px;
     width: 44px;
     height: 44px;
     border-radius: var(--radius-sm);
