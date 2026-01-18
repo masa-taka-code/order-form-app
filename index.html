@@ -1,320 +1,1425 @@
-<!DOCTYPE html>
-<html lang="ja">
+/* ===== CSS Variables ===== */
+:root {
+  --primary-color: #4F46E5;
+  --primary-hover: #4338CA;
+  --secondary-color: #6B7280;
+  --success-color: #10B981;
+  --danger-color: #EF4444;
+  --warning-color: #F59E0B;
+  --bg-color: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-tertiary: #E2E8F0;
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --border-color: #CBD5E1;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>注文書管理アプリ</title>
-  <link rel="stylesheet" href="style.css">
-</head>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-<body>
-  <div class="app-container">
-    <!-- ナビゲーションタブ -->
-    <nav class="nav-tabs">
-      <button class="nav-tab active" data-tab="input">新規入力</button>
-      <button class="nav-tab" data-tab="summary">一覧</button>
-      <button class="nav-tab" data-tab="list">詳細</button>
-      <button class="nav-tab" data-tab="settings">設定</button>
-    </nav>
+html {
+  font-size: 24px;
+}
 
-    <!-- 入力タブ -->
-    <div id="input-tab" class="tab-content active">
-      <form id="order-form" class="order-form">
-        <!-- 受付情報 -->
-        <section class="form-section">
-          <h2 class="section-title">受付情報</h2>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="reception-date">受付日</label>
-              <input type="date" id="reception-date" name="receptionDate" required>
-            </div>
-            <div class="form-group">
-              <label>受付方法</label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input type="radio" name="receptionMethod" value="来店" checked>
-                  <span>来店</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="receptionMethod" value="電話">
-                  <span>電話</span>
-                </label>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="staff-name">受注者</label>
-              <input type="text" id="staff-name" name="staffName" placeholder="担当者名">
-            </div>
-            <div class="form-group">
-              <label>ご注文日時</label>
-              <div class="datetime-group">
-                <input type="date" id="order-date" name="orderDate">
-                <select id="order-hour" name="orderHour">
-                  <option value="">時</option>
-                  <option value="00">0時</option>
-                  <option value="01">1時</option>
-                  <option value="02">2時</option>
-                  <option value="03">3時</option>
-                  <option value="04">4時</option>
-                  <option value="05">5時</option>
-                  <option value="06">6時</option>
-                  <option value="07">7時</option>
-                  <option value="08">8時</option>
-                  <option value="09">9時</option>
-                  <option value="10">10時</option>
-                  <option value="11">11時</option>
-                  <option value="12">12時</option>
-                  <option value="13">13時</option>
-                  <option value="14">14時</option>
-                  <option value="15">15時</option>
-                  <option value="16">16時</option>
-                  <option value="17">17時</option>
-                  <option value="18">18時</option>
-                  <option value="19">19時</option>
-                  <option value="20">20時</option>
-                  <option value="21">21時</option>
-                  <option value="22">22時</option>
-                  <option value="23">23時</option>
-                </select>
-                <select id="order-minute" name="orderMinute">
-                  <option value="00">00分</option>
-                  <option value="30">30分</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>受け取り方法</label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input type="radio" name="deliveryMethod" value="配達" checked>
-                  <span>配達</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="deliveryMethod" value="来店">
-                  <span>来店</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </section>
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-tap-highlight-color: transparent;
+}
 
-        <!-- お客様情報 -->
-        <section class="form-section">
-          <h2 class="section-title">お客様情報</h2>
-          <div class="form-grid">
-            <div class="form-group full-width">
-              <label for="customer-name">お客様氏名</label>
-              <input type="text" id="customer-name" name="customerName" placeholder="お客様のお名前" required>
-            </div>
-            <div class="form-group">
-              <label for="phone-number">お電話番号</label>
-              <input type="tel" id="phone-number" name="phoneNumber" placeholder="090-1234-5678">
-            </div>
-            <div class="form-group full-width">
-              <label for="delivery-address">配達先住所</label>
-              <input type="text" id="delivery-address" name="deliveryAddress" placeholder="配達先の住所">
-            </div>
-          </div>
-        </section>
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 16px 100px;
+}
 
-        <!-- 注文商品 -->
-        <section class="form-section">
-          <h2 class="section-title">ご注文品</h2>
-          <div id="products-container" class="products-container">
-            <!-- 商品行はJavaScriptで動的に追加 -->
-          </div>
-          <button type="button" id="add-product-btn" class="add-product-btn">
-            ＋ 商品を追加
-          </button>
-          <div class="total-display">
-            <span>合計金額:</span>
-            <span id="total-amount">¥0</span>
-          </div>
-        </section>
+.nav-tabs {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 6px;
+  margin: 16px 0;
+  box-shadow: var(--shadow);
+}
 
-        <!-- 詳細・備考 -->
-        <section class="form-section">
-          <h2 class="section-title">詳細・備考</h2>
-          <div class="form-group full-width">
-            <textarea id="notes" name="notes" rows="4" placeholder="詳細や備考を入力"></textarea>
-          </div>
-        </section>
+.nav-tab {
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
 
-        <!-- 支払い・請求 -->
-        <section class="form-section">
-          <h2 class="section-title">支払い・請求</h2>
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="payment-type">代金</label>
-              <select id="payment-type" name="paymentType">
-                <option value="">（選択してください）</option>
-                <option value="代スミ">代スミ</option>
-                <option value="売掛">売掛</option>
-                <option value="代引">代引</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>納品請求書</label>
-              <label class="checkbox-label invoice-checkbox">
-                <input type="checkbox" id="invoice-required" name="invoiceRequired" value="要">
-                <span>要</span>
-              </label>
-            </div>
-            <div class="form-group full-width">
-              <label for="billing-name">ご請求先・領収書宛名</label>
-              <input type="text" id="billing-name" name="billingName" placeholder="請求先または領収書の宛名">
-            </div>
-          </div>
-        </section>
+.nav-tab.active {
+  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  color: white;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+}
 
-        <!-- 部門 -->
-        <section class="form-section">
-          <h2 class="section-title">部門</h2>
-          <div class="checkbox-group departments">
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="青果">
-              <span>青果</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="精肉">
-              <span>精肉</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="鮮魚">
-              <span>鮮魚</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="惣菜">
-              <span>惣菜</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="日配">
-              <span>日配</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="食品">
-              <span>食品</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="酒">
-              <span>酒</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="菓子">
-              <span>菓子</span>
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" name="departments" value="雑貨">
-              <span>雑貨</span>
-            </label>
-          </div>
-        </section>
+.nav-tab:not(.active):hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
 
-        <!-- 送信ボタン -->
-        <div class="form-actions">
-          <button type="button" id="clear-form-btn" class="btn btn-secondary">クリア</button>
-          <button type="submit" class="btn btn-primary">保存</button>
-        </div>
-      </form>
-    </div>
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
 
-    <!-- 一覧タブ（注文日、名前、商品名のみ表示） -->
-    <div id="summary-tab" class="tab-content">
-      <div class="list-header">
-        <input type="text" id="summary-search-input" class="search-input" placeholder="顧客名で検索...">
-      </div>
-      <div id="summary-list" class="summary-list">
-        <!-- 注文サマリーリストはJavaScriptで動的に生成 -->
-      </div>
-    </div>
+.tab-content.active {
+  display: block;
+}
 
-    <!-- 詳細タブ -->
-    <div id="list-tab" class="tab-content">
-      <div class="list-header">
-        <input type="text" id="search-input" class="search-input" placeholder="顧客名・電話番号で検索...">
-        <select id="filter-status" class="filter-select">
-          <option value="all">すべて</option>
-          <option value="未処理">未処理</option>
-          <option value="処理済み">処理済み</option>
-        </select>
-      </div>
-      <div id="orders-list" class="orders-list">
-        <!-- 注文リストはJavaScriptで動的に生成 -->
-      </div>
-    </div>
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 
-    <!-- 設定タブ -->
-    <div id="settings-tab" class="tab-content">
-      <div class="settings-container">
-        <h2>データ管理</h2>
-        <div class="settings-section">
-          <button id="export-btn" class="btn btn-secondary full-width">
-            📥 データをエクスポート（バックアップ）
-          </button>
-          <p class="settings-description">保存されているすべてのデータをJSONファイルとしてダウンロードします。</p>
-        </div>
-        <div class="settings-section">
-          <label for="import-file" class="btn btn-secondary full-width">
-            📤 データをインポート（復元）
-          </label>
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-          <p class="settings-description">以前エクスポートしたJSONファイルからデータを復元します。</p>
-        </div>
-      </div>
-    </div>
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-    <!-- 印刷プレビューモーダル -->
-    <div id="print-modal" class="modal">
-      <div class="modal-content print-preview">
-        <div class="modal-header">
-          <h2>印刷プレビュー</h2>
-          <button class="close-modal">&times;</button>
-        </div>
-        <div id="print-content" class="print-content">
-          <!-- 印刷用コンテンツはJavaScriptで生成 -->
-        </div>
-        <div class="modal-actions">
-          <button id="back-to-list-btn" class="btn btn-secondary">一覧に戻る</button>
-          <button id="download-pdf-btn" class="btn btn-primary">🖨️ 印刷</button>
-        </div>
-      </div>
-    </div>
+.form-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
 
-    <!-- 編集モーダル -->
-    <div id="edit-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>注文を編集</h2>
-          <button class="close-modal">&times;</button>
-        </div>
-        <div id="edit-form-container">
-          <!-- 編集フォームはJavaScriptで生成 -->
-        </div>
-      </div>
-    </div>
+.section-title {
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--bg-tertiary);
+}
 
-    <!-- 詳細表示モーダル -->
-    <div id="detail-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>注文詳細</h2>
-          <button class="close-modal">&times;</button>
-        </div>
-        <div id="detail-content">
-          <!-- 詳細内容はJavaScriptで生成 -->
-        </div>
-        <div class="modal-actions">
-          <button id="detail-print-btn" class="btn btn-secondary">印刷</button>
-          <button id="detail-edit-btn" class="btn btn-primary">編集</button>
-        </div>
-      </div>
-    </div>
-  </div>
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
 
-  <script src="app.js"></script>
-</body>
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-</html>
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="tel"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-color);
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 20px rgba(79, 70, 229, 0.2);
+  background: var(--bg-color);
+}
+
+/* ご注文日時のグループ */
+.datetime-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.datetime-group input[type="date"] {
+  flex: 1;
+}
+
+.datetime-group select {
+  width: auto;
+  min-width: 80px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.radio-group,
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.radio-label,
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.radio-label:hover,
+.checkbox-label:hover {
+  background: var(--bg-color);
+}
+
+.radio-label input,
+.checkbox-label input {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.checkbox-label input {
+  border-radius: 4px;
+}
+
+.radio-label input:checked,
+.checkbox-label input:checked {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.radio-label input:checked::after,
+.checkbox-label input:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.radio-label input:checked::after {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.checkbox-label input:checked::after {
+  content: '✓';
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.radio-label:has(input:checked),
+.checkbox-label:has(input:checked) {
+  border-color: var(--primary-color);
+  background: rgba(79, 70, 229, 0.15);
+}
+
+.radio-label span,
+.checkbox-label span {
+  font-size: 0.95rem;
+}
+
+.payment-methods,
+.departments {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.products-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.product-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 140px 70px 60px 90px 36px;
+  gap: 8px;
+  align-items: center;
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  animation: slideIn 0.3s ease;
+}
+
+.product-price-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-price-wrapper input {
+  flex: 1;
+  min-width: 60px;
+}
+
+.product-tax-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.product-tax-type,
+.product-tax-rate {
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.product-row input {
+  padding: 10px 12px;
+}
+
+.product-subtotal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  background: var(--bg-color);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  color: var(--success-color);
+  font-size: 0.95rem;
+}
+
+.remove-product-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.remove-product-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.add-product-btn {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-product-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.total-display {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  border-radius: var(--radius-sm);
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.btn {
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  color: white;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary-color);
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.btn-danger {
+  background: var(--danger-color);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #DC2626;
+}
+
+.btn.full-width {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.form-actions .btn {
+  flex: 1;
+}
+
+.list-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.filter-select {
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+  min-width: 120px;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 4px solid var(--primary-color);
+}
+
+.order-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.order-card.processed {
+  border-left-color: var(--success-color);
+  opacity: 0.8;
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.order-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.order-card-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.order-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-card-info {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.order-card-amount {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.order-card-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.order-card-status.pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning-color);
+}
+
+.order-card-status.completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success-color);
+}
+
+.order-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+.order-card-actions .btn {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+/* === サマリーリスト（一覧タブ用・コンパクト表示） === */
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary-item {
+  display: grid;
+  grid-template-columns: 100px 120px 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.summary-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.summary-item-date {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.summary-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summary-item-products {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-list {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-list-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+}
+
+.settings-container {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.settings-container h2 {
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.danger-zone {
+  padding-top: 24px;
+  border-top: 2px solid var(--danger-color);
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.modal-header h2 {
+  font-size: 1.2rem;
+}
+
+.close-modal {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: 50%;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+  background: var(--danger-color);
+}
+
+.modal-actions {
+  padding: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--bg-tertiary);
+}
+
+#detail-content {
+  padding: 20px;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.detail-section p {
+  font-size: 1rem;
+}
+
+.detail-products {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.detail-product-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-color);
+}
+
+.detail-product-item:last-child {
+  border-bottom: none;
+}
+
+.print-preview {
+  max-width: 900px;
+}
+
+.print-content {
+  background: white;
+  color: black;
+  padding: 20px;
+  font-size: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* A4プレビューコンテナ */
+.print-preview-a4 {
+  width: 210mm;
+  min-height: auto;
+  position: relative;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  transform: scale(0.7);
+  transform-origin: top center;
+}
+
+/* プレビュー内のpaper構造（PDF印刷と同じ） */
+.print-preview-a4 .paper {
+  width: 100%;
+  padding: 15mm;
+  background: white;
+  color: black;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.print-preview-a4 .paper-title {
+  text-align: center;
+  font-size: 18pt;
+  font-weight: bold;
+  letter-spacing: 2pt;
+  margin-bottom: 8mm;
+}
+
+.print-preview-a4 .paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+}
+
+.print-preview-a4 .paper-table th,
+.print-preview-a4 .paper-table td {
+  border: 1px solid #000;
+  padding: 2mm 3mm;
+  vertical-align: middle;
+  font-size: 10.5pt;
+}
+
+.print-preview-a4 .paper-table th {
+  background: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+  width: 25mm;
+}
+
+.print-preview-a4 .product-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-preview-a4 .product-table th,
+.print-preview-a4 .product-table td {
+  border: 1px solid #000;
+  padding: 1.5mm 2mm;
+  font-size: 10pt;
+}
+
+.print-preview-a4 .product-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+  text-align: center;
+}
+
+.print-preview-a4 .product-table td {
+  text-align: center;
+}
+
+.print-preview-a4 .product-table td:first-child {
+  text-align: left;
+}
+
+.print-preview-a4 .product-table td:last-child {
+  text-align: right;
+}
+
+/* 合計エリア */
+.print-preview-a4 .total-cell {
+  text-align: right !important;
+  font-weight: bold;
+  font-size: 10.5pt;
+  padding: 2mm !important;
+  vertical-align: top !important;
+  width: 50mm;
+}
+
+.print-preview-a4 .total-details {
+  text-align: right;
+}
+
+.print-preview-a4 .total-detail-item {
+  font-size: 9pt;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.print-preview-a4 .total-detail-item.total-main {
+  font-size: 12pt;
+  font-weight: bold;
+  border-top: 1px solid #000;
+  padding-top: 1mm;
+  margin-top: 1mm;
+}
+
+/* チェックボックス風 */
+.print-preview-a4 .check-group {
+  display: inline;
+}
+
+.print-preview-a4 .check-item {
+  display: inline-block;
+  margin-right: 4mm;
+  font-size: 10.5pt;
+}
+
+.print-preview-a4 .check-box {
+  display: inline-block;
+  width: 4mm;
+  height: 4mm;
+  border: 1px solid #000;
+  text-align: center;
+  line-height: 4mm;
+  font-size: 9pt;
+  margin-right: 1mm;
+  vertical-align: middle;
+}
+
+/* 店舗情報 */
+.print-preview-a4 .store-info {
+  text-align: right;
+  font-size: 11pt;
+  line-height: 1.6;
+  margin-top: 5mm;
+  padding-right: 5mm;
+}
+
+.print-preview-a4 .total-details {
+  text-align: right;
+}
+
+.print-preview-a4 .total-detail-item {
+  font-size: 8pt;
+  line-height: 1.3;
+}
+
+.print-preview-a4 .total-detail-item.total-main {
+  font-size: 10pt;
+  font-weight: bold;
+  border-top: 1px solid #000;
+  padding-top: 3px;
+  margin-top: 3px;
+}
+
+.print-preview-a4 .check-item {
+  display: inline-block;
+  margin-right: 3mm;
+  font-size: 9pt;
+}
+
+.print-preview-a4 .check-box {
+  display: inline-block;
+  width: 3.5mm;
+  height: 3.5mm;
+  border: 1px solid #000;
+  text-align: center;
+  line-height: 3.5mm;
+  font-size: 7pt;
+  margin-right: 1mm;
+  vertical-align: middle;
+}
+
+.print-preview-a4 .store-info {
+  text-align: right;
+  font-size: 10pt;
+  line-height: 1.6;
+  margin-top: 5mm;
+  padding-right: 5mm;
+}
+
+/* プレビュー内の店舗情報 */
+.print-preview-store-info {
+  position: absolute;
+  bottom: 15mm;
+  right: 15mm;
+  text-align: right;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ===== 印刷用スタイル（画面表示用プレビュー・実際の印刷共通） ===== */
+.print-wrapper {
+  padding-bottom: 60px;
+}
+
+.print-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  letter-spacing: 4px;
+}
+
+.print-form {
+  border: 2px solid #000;
+  width: 100%;
+  border-collapse: collapse;
+  /* テーブルライクな挙動を意識 */
+  font-size: 12px;
+}
+
+/* 行のスタイル */
+.print-row {
+  display: flex;
+  border-bottom: 1px solid #000;
+}
+
+.print-row:last-child {
+  border-bottom: none;
+}
+
+/* セルの基本スタイル */
+.print-cell {
+  padding: 8px;
+  border-right: 1px solid #000;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  color: #000;
+}
+
+.print-cell:last-child {
+  border-right: none;
+}
+
+/* ヘッダーセル */
+.print-cell.header {
+  background: #f0f0f0;
+  /* 少し薄めのグレーに変更 */
+  font-weight: bold;
+  font-size: 11px;
+  width: 100px;
+  flex-shrink: 0;
+  justify-content: center;
+  text-align: center;
+}
+
+/* コンテンツセル */
+.print-cell.content {
+  flex: 1;
+  font-size: 13px;
+}
+
+/* 小さいヘッダーセル（チェック用など） */
+.print-cell.small {
+  width: 60px;
+  text-align: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 注文商品リスト部分のコンテナ - パディングを0にして内部グリッドを端まで広げる */
+.print-cell.content.print-products {
+  display: block;
+  padding: 0;
+}
+
+/* 商品リストのヘッダー行 */
+.print-product-header {
+  display: grid;
+  grid-template-columns: 1fr 50px 100px 80px;
+  border-bottom: 1px solid #000;
+  background: #f0f0f0;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.print-product-header>div {
+  padding: 8px;
+  border-right: 1px solid #000;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.print-product-header>div:last-child {
+  border-right: none;
+}
+
+/* 商品リストのデータ行 */
+.print-product-item {
+  display: grid;
+  grid-template-columns: 1fr 50px 100px 80px;
+  border-bottom: 1px solid #000;
+}
+
+.print-product-item>div {
+  padding: 8px;
+  border-right: 1px solid #000;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.print-product-item>div:last-child {
+  border-right: none;
+  justify-content: flex-end;
+}
+
+.print-product-item>div:nth-child(2),
+.print-product-item>div:nth-child(3) {}
+
+/* 備考欄 */
+.print-notes {
+  min-height: 80px;
+  align-items: flex-start;
+  white-space: pre-wrap;
+}
+
+.print-checkbox-group {
+  display: flex;
+  gap: 16px;
+}
+
+.print-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.print-checkbox-box {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 合計金額表示エリア（商品欄の右側） */
+.print-total-area {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #000;
+  padding: 10px;
+}
+
+.print-total-label {
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.print-total {
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+  padding: 0;
+}
+
+/* 印刷用タイトル */
+.print-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  letter-spacing: 4px;
+}
+
+/* 印刷用店舗情報 */
+.print-store-info {
+  text-align: right;
+  font-size: 12px;
+  margin-top: 20px;
+  line-height: 1.6;
+}
+
+/* 納品請求書チェックボックス */
+.invoice-checkbox {
+  display: inline-flex;
+  width: auto;
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .app-container,
+  .nav-tabs,
+  .modal-header,
+  .modal-actions {
+    display: none !important;
+  }
+
+  .modal {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .print-content {
+    display: block !important;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 15mm;
+    margin: 0;
+    font-size: 11pt;
+  }
+}
+
+/* モバイル・タブレット向けレスポンシブ (1024px以下) */
+@media (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+
+  .app-container {
+    padding: 0 16px 120px;
+  }
+
+  /* フォームを完全に1列にする */
+  .form-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px;
+  }
+
+  .form-group {
+    width: 100% !important;
+  }
+
+  /* 日付入力欄を画面幅に収める */
+  input[type="date"],
+  input[type="datetime-local"] {
+    width: 100%;
+    max-width: 100%;
+    font-size: 16px;
+    /* iOSでズーム防止 */
+  }
+
+  /* ラジオボタン・チェックボックスを横並びで均等配置 */
+  .radio-group,
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .radio-label,
+  .checkbox-label {
+    flex: 1 1 45%;
+    /* 2つで1行、余裕を持たせる */
+    max-width: calc(50% - 5px);
+    justify-content: center;
+    padding: 14px 10px;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .radio-label span,
+  .checkbox-label span {
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+
+  /* 支払い方法は3列 */
+  .payment-methods {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px;
+  }
+
+  .payment-methods .radio-label {
+    max-width: 100%;
+    flex: none;
+    padding: 12px 8px;
+  }
+
+  /* 部門は5列 */
+  .departments {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px;
+  }
+
+  .departments .checkbox-label {
+    max-width: 100%;
+    flex: none;
+    padding: 12px 8px;
+  }
+
+  /* 商品行のデザイン調整 */
+  .product-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  /* モバイル表示順序: 商品名→個数→単価→税込/税抜→税率→小計→削除 */
+  .product-row .product-name {
+    width: 100%;
+    order: 1;
+  }
+
+  .product-row .product-quantity {
+    flex: 1;
+    min-width: 70px;
+    order: 2;
+  }
+
+  .product-row .product-price-wrapper {
+    flex: 2;
+    min-width: 100px;
+    order: 3;
+  }
+
+  .product-row .product-tax-type {
+    flex: 1;
+    min-width: 60px;
+    order: 4;
+  }
+
+  .product-row .product-tax-rate {
+    flex: 1;
+    min-width: 50px;
+    order: 5;
+  }
+
+  .product-row .product-subtotal {
+    flex: 1;
+    min-width: 80px;
+    order: 6;
+    text-align: right;
+  }
+
+  .product-row .remove-product-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    order: 7;
+  }
+
+  /* ヘッダー・ボタン調整 */
+  .list-header {
+    flex-direction: column;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .order-card-actions {
+    flex-direction: column;
+  }
+
+  .order-card-actions .btn {
+    width: 100%;
+    padding: 14px;
+  }
+}
+
+/* 横画面iPad向け追加調整 (高さが狭い場合) */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .form-section {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+  }
+
+  /* 横画面では支払い方法を6列に */
+  .payment-methods {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+
+  .payment-methods .radio-label {
+    padding: 10px 6px;
+    font-size: 0.85rem;
+  }
+}
+
+/* iPad向け文字サイズ拡大 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    font-size: 22px;
+  }
+
+  .form-group label {
+    font-size: 1rem;
+  }
+
+  input[type="text"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 1.1rem;
+    padding: 16px 18px;
+  }
+
+  .btn {
+    font-size: 1.1rem;
+    padding: 16px 24px;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .radio-label,
+  .checkbox-label {
+    font-size: 1.1rem;
+    padding: 14px 18px;
+  }
+}
