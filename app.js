@@ -394,30 +394,40 @@ if (summarySearchInput) {
 
 // ひらがなをカタカナに変換する関数
 function toKatakana(str) {
-    if (!str) return str;
-    const chars = Array.from(str);
-    return chars.map(char => {
+    if (!str) return '';
+    let result = '';
+    for (const char of str) {
         const code = char.charCodeAt(0);
         // ひらがな範囲（ぁ-ゖ: U+3041-U+3096）をカタカナに変換
         if (code >= 0x3041 && code <= 0x3096) {
-            return String.fromCharCode(code + 0x60);
+            result += String.fromCharCode(code + 0x60);
+        } else {
+            result += char;
         }
-        return char;
-    }).join('');
+    }
+    return result;
 }
 
-// お客様氏名にカタカナ変換と「様」を自動付与
-if (customerNameInput && !customerNameInput.dataset.listenerAdded) {
-    customerNameInput.dataset.listenerAdded = 'true';
+// お客様氏名にカタカナ変換と「様」を自動付与（IME対応版）
+if (customerNameInput) {
+    let isComposing = false;
+    let processed = false;
+
+    // IME変換中フラグ
+    customerNameInput.addEventListener('compositionstart', () => { isComposing = true; });
+    customerNameInput.addEventListener('compositionend', () => { isComposing = false; });
+
+    // フォーカスが外れた時に一度だけ変換
     customerNameInput.addEventListener('blur', () => {
-        let name = customerNameInput.value.trim();
-        if (name && !name.endsWith('様')) {
-            // ひらがなをカタカナに変換
-            name = toKatakana(name);
-            // 「様」を追加
-            name = name + ' 様';
-            customerNameInput.value = name;
-        }
+        if (isComposing) return; // IME変換中は何もしない
+
+        const originalValue = customerNameInput.value.trim();
+        if (!originalValue) return;
+        if (originalValue.endsWith('様')) return; // 既に変換済み
+
+        // カタカナに変換して「様」を追加
+        const converted = toKatakana(originalValue) + ' 様';
+        customerNameInput.value = converted;
     });
 }
 
