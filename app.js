@@ -84,11 +84,11 @@ function createProductRow() {
     row.className = 'product-row';
     row.innerHTML = `
         <input type="text" placeholder="商品名" class="product-name">
-        <input type="number" placeholder="個数" min="1" value="1" class="product-quantity">
         <div class="product-price-wrapper">
             <input type="number" placeholder="単価" min="0" class="product-price">
             <span class="product-tax-label">(税込)</span>
         </div>
+        <input type="number" placeholder="個数" min="1" value="1" class="product-quantity">
         <select class="product-tax-type">
             <option value="税込">税込</option>
             <option value="税抜">税抜</option>
@@ -461,7 +461,7 @@ function showOrderDetail(id) {
     if (!order) return;
     currentOrderId = id;
     detailContent.innerHTML = `
-        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>受付方法: ${order.receptionMethod}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${order.deliveryMethod}</p></div>
+        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>ご注文日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${order.receptionMethod}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${order.deliveryMethod}</p></div>
         <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName)}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
         <div class="detail-section"><h3>注文商品 (${order.taxType})</h3><div class="detail-products">${order.products.map(p => `<div class="detail-product-item"><span>${escapeHtml(p.name)}</span><span>${p.quantity}個 × ¥${p.price.toLocaleString()} = ¥${(p.quantity * p.price).toLocaleString()}</span></div>`).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${order.totalAmount.toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
