@@ -349,7 +349,7 @@ textarea {
   background: var(--bg-color);
   border-radius: var(--radius-sm);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--success-color);
   font-size: 0.95rem;
 }
 
