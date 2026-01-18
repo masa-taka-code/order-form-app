@@ -394,9 +394,17 @@ if (summarySearchInput) {
 
 // ひらがなをカタカナに変換する関数
 function toKatakana(str) {
-    return str.replace(/[\u3041-\u3096]/g, function (match) {
-        return String.fromCharCode(match.charCodeAt(0) + 0x60);
-    });
+    let result = '';
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        // ひらがな範囲（ぁ-ゖ: U+3041-U+3096）をカタカナに変換
+        if (code >= 0x3041 && code <= 0x3096) {
+            result += String.fromCharCode(code + 0x60);
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
 }
 
 // お客様氏名にカタカナ変換と「様」を自動付与
