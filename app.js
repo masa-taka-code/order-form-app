@@ -37,6 +37,44 @@ function deleteOrder(id) {
     saveOrders(filtered);
 }
 
+// ===== お客様データ管理 =====
+const CUSTOMER_STORAGE_KEY = 'customerListData';
+
+function getCustomers() {
+    const data = localStorage.getItem(CUSTOMER_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+}
+
+function saveCustomers(customers) {
+    localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customers));
+}
+
+function addCustomer(customer) {
+    const customers = getCustomers();
+    customer.id = Date.now().toString();
+    customer.createdAt = new Date().toISOString();
+    customers.unshift(customer);
+    saveCustomers(customers);
+    return customer;
+}
+
+function updateCustomer(id, updatedData) {
+    const customers = getCustomers();
+    const index = customers.findIndex(c => c.id === id);
+    if (index !== -1) {
+        customers[index] = { ...customers[index], ...updatedData };
+        saveCustomers(customers);
+        return customers[index];
+    }
+    return null;
+}
+
+function deleteCustomer(id) {
+    const customers = getCustomers();
+    const filtered = customers.filter(c => c.id !== id);
+    saveCustomers(filtered);
+}
+
 // DOM Elements
 const navTabs = document.querySelectorAll('.nav-tab');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -72,6 +110,7 @@ navTabs.forEach(tab => {
         });
         if (tabName === 'list') renderOrdersList();
         if (tabName === 'summary') renderSummaryList();
+        if (tabName === 'customers') renderCustomersList();
     });
 });
 
@@ -1233,4 +1272,172 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[name="taxType"]').forEach(radio => {
         radio.addEventListener('change', updateTotal);
     });
+
+    // お客様一覧のイベントハンドラ設定
+    setupCustomerEvents();
 });
+
+// ===== お客様一覧機能 =====
+const customersList = document.getElementById('customers-list');
+const customerSearchInput = document.getElementById('customer-search-input');
+const addCustomerBtn = document.getElementById('add-customer-btn');
+
+function setupCustomerEvents() {
+    if (customerSearchInput) {
+        customerSearchInput.addEventListener('input', renderCustomersList);
+    }
+    if (addCustomerBtn) {
+        addCustomerBtn.addEventListener('click', showAddCustomerModal);
+    }
+}
+
+function renderCustomersList() {
+    if (!customersList) return;
+
+    // 注文データからお客様情報を抽出（重複排除）
+    const orders = getOrders();
+    const customerMap = new Map();
+
+    orders.forEach(order => {
+        const name = order.customerName || '';
+        if (name && !customerMap.has(name)) {
+            customerMap.set(name, {
+                name: name,
+                phone: order.phoneNumber || '',
+                address: order.deliveryAddress || '',
+                lastOrderDate: order.createdAt
+            });
+        }
+    });
+
+    const customers = Array.from(customerMap.values());
+    const searchTerm = customerSearchInput ? customerSearchInput.value.toLowerCase() : '';
+
+    const filtered = customers.filter(c => {
+        const name = (c.name || '').toLowerCase();
+        return name.includes(searchTerm);
+    });
+
+    if (filtered.length === 0) {
+        customersList.innerHTML = `
+            <div class="empty-list">
+                <div class="empty-list-icon">👥</div>
+                <p>${searchTerm ? '該当するお客様が見つかりません' : '注文履歴がありません'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    customersList.innerHTML = filtered.map(customer => `
+        <div class="order-card">
+            <div class="order-card-header">
+                <div class="order-card-title">${escapeHtml(customer.name || '名前なし')}</div>
+                <div class="order-card-date">最終注文: ${formatDate(customer.lastOrderDate)}</div>
+            </div>
+            <div class="order-card-body">
+                <div class="order-card-info">📞 ${escapeHtml(customer.phone || '未登録')}</div>
+                <div class="order-card-info">📍 ${escapeHtml(customer.address || '未登録')}</div>
+            </div>
+            <div class="order-card-actions">
+                <button class="btn btn-primary" onclick="useCustomerForOrderByName('${escapeHtml(customer.name)}')">注文に使用</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddCustomerModal() {
+    const name = prompt('お客様氏名を入力してください：');
+    if (!name) return;
+
+    const phone = prompt('電話番号を入力してください（任意）：') || '';
+    const address = prompt('住所を入力してください（任意）：') || '';
+
+    addCustomer({
+        name: name,
+        phone: phone,
+        address: address
+    });
+
+    renderCustomersList();
+    alert('お客様を登録しました。');
+}
+
+function editCustomer(id) {
+    const customers = getCustomers();
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+
+    const name = prompt('お客様氏名を入力してください：', customer.name);
+    if (name === null) return; // キャンセル
+
+    const phone = prompt('電話番号を入力してください：', customer.phone || '');
+    const address = prompt('住所を入力してください：', customer.address || '');
+
+    updateCustomer(id, {
+        name: name || customer.name,
+        phone: phone,
+        address: address
+    });
+
+    renderCustomersList();
+    alert('お客様情報を更新しました。');
+}
+
+function handleDeleteCustomer(id) {
+    const customers = getCustomers();
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+
+    if (confirm(`「${customer.name}」さんを削除しますか？\nこの操作は取り消せません。`)) {
+        deleteCustomer(id);
+        renderCustomersList();
+    }
+}
+
+function useCustomerForOrder(id) {
+    const customers = getCustomers();
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+
+    // 新規入力タブに切り替え
+    navTabs.forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-tab="input"]').classList.add('active');
+    tabContents.forEach(content => content.classList.remove('active'));
+    document.getElementById('input-tab').classList.add('active');
+
+    // お客様情報をフォームに入力
+    const customerNameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('phone-number');
+    const addressInput = document.getElementById('delivery-address');
+
+    if (customerNameInput) customerNameInput.value = customer.name || '';
+    if (phoneInput) phoneInput.value = customer.phone || '';
+    if (addressInput) addressInput.value = customer.address || '';
+
+    alert('お客様情報を注文フォームに入力しました。');
+}
+
+// 名前でお客様情報を検索してフォームに入力
+function useCustomerForOrderByName(name) {
+    // 注文データから該当お客様の最新情報を取得
+    const orders = getOrders();
+    const customerOrder = orders.find(o => o.customerName === name);
+    if (!customerOrder) return;
+
+    // 新規入力タブに切り替え
+    navTabs.forEach(t => t.classList.remove('active'));
+    document.querySelector('[data-tab="input"]').classList.add('active');
+    tabContents.forEach(content => content.classList.remove('active'));
+    document.getElementById('input-tab').classList.add('active');
+
+    // お客様情報をフォームに入力
+    const customerNameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('phone-number');
+    const addressInput = document.getElementById('delivery-address');
+
+    if (customerNameInput) customerNameInput.value = customerOrder.customerName || '';
+    if (phoneInput) phoneInput.value = customerOrder.phoneNumber || '';
+    if (addressInput) addressInput.value = customerOrder.deliveryAddress || '';
+
+    alert('お客様情報を注文フォームに入力しました。');
+}
