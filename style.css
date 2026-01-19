@@ -287,15 +287,51 @@ textarea {
 }
 
 .product-row {
-  display: grid;
-  /* HTML順序: 商品名(1fr) | 単価(150px) | 個数(80px) | 税区分(75px) | 税率(65px) | 小計(100px) | 削除(44px) */
-  grid-template-columns: 1fr 150px 80px 75px 65px 100px 44px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   background: var(--bg-tertiary);
   padding: 12px;
   border-radius: var(--radius-sm);
   animation: slideIn 0.3s ease;
+}
+
+/* 商品名を全幅に */
+.product-row .product-name {
+  width: 100%;
+  flex: none;
+}
+
+/* 2行目の項目 */
+.product-row .product-price-wrapper {
+  flex: 1 1 150px;
+  min-width: 150px;
+}
+
+.product-row .product-quantity {
+  flex: 0 0 80px;
+  min-width: 80px;
+}
+
+.product-row .product-tax-type {
+  flex: 0 0 75px;
+  min-width: 75px;
+}
+
+.product-row .product-tax-rate {
+  flex: 0 0 65px;
+  min-width: 65px;
+}
+
+.product-row .product-subtotal {
+  flex: 0 0 100px;
+  min-width: 100px;
+  text-align: right;
+}
+
+.product-row .remove-product-btn {
+  flex: 0 0 36px;
 }
 
 .product-price-wrapper {
