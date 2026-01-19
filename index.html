@@ -15,8 +15,9 @@
     <!-- ナビゲーションタブ -->
     <nav class="nav-tabs">
       <button class="nav-tab active" data-tab="input">新規入力</button>
-      <button class="nav-tab" data-tab="summary">一覧</button>
+      <button class="nav-tab" data-tab="summary">注文一覧</button>
       <button class="nav-tab" data-tab="list">詳細</button>
+      <button class="nav-tab" data-tab="customers">お客様一覧</button>
       <button class="nav-tab" data-tab="settings">設定</button>
     </nav>
 
@@ -243,6 +244,16 @@
       </div>
       <div id="orders-list" class="orders-list">
         <!-- 注文リストはJavaScriptで動的に生成 -->
+      </div>
+    </div>
+
+    <!-- お客様一覧タブ -->
+    <div id="customers-tab" class="tab-content">
+      <div class="list-header">
+        <input type="text" id="customer-search-input" class="search-input" placeholder="お客様名で検索...">
+      </div>
+      <div id="customers-list" class="orders-list">
+        <!-- お客様リストはJavaScriptで動的に生成 -->
       </div>
     </div>
 
