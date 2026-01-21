@@ -1257,7 +1257,23 @@ textarea {
   }
 
   .app-container {
-    padding: 0 16px 120px;
+    padding: 0 8px 120px;
+  }
+
+  /* ナビタブを5つ収まるように調整 */
+  .nav-tabs {
+    padding: 4px;
+    gap: 2px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .nav-tab {
+    flex: 1 0 auto;
+    padding: 10px 8px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   /* フォームを完全に1列にする */
@@ -1464,6 +1480,17 @@ textarea {
 @media (min-width: 768px) and (max-width: 1024px) {
   html {
     font-size: 20px;
+  }
+
+  /* ナビタブを5つ収まるように調整 */
+  .nav-tabs {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 12px 10px;
+    font-size: 0.85rem;
   }
 
   .form-group label {
