@@ -502,18 +502,25 @@ textarea {
 
 .list-header {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-bottom: 16px;
 }
 
+.list-header-row {
+  display: flex;
+  gap: 8px;
+}
+
 .search-input {
   flex: 1;
-  padding: 14px 16px;
+  padding: 18px 20px;
   background: var(--bg-secondary);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 1.1rem;
+  min-height: 56px;
 }
 
 .filter-select {
@@ -1451,6 +1458,27 @@ textarea {
     width: 100%;
     padding: 14px;
   }
+
+  /* 検索欄を大きく */
+  .list-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .search-input {
+    width: 100%;
+    flex: none;
+    padding: 16px 18px;
+    font-size: 16px;
+    min-height: 52px;
+  }
+
+  .filter-select {
+    flex: 1;
+    padding: 14px 12px;
+    font-size: 16px;
+    min-width: 0;
+  }
 }
 
 /* 横画面iPad向け追加調整 (高さが狭い場合) */
@@ -1619,5 +1647,24 @@ textarea {
 
   .product-row .remove-product-btn {
     flex: 0 0 44px;
+  }
+
+  /* 検索欄を大きく */
+  .list-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 16px 18px;
+    font-size: 1.1rem;
+    min-height: 56px;
+  }
+
+  .filter-select {
+    padding: 14px 12px;
+    font-size: 1rem;
+    min-width: 100px;
   }
 }
