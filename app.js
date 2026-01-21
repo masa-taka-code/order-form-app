@@ -1289,6 +1289,15 @@ function setupCustomerEvents() {
     if (addCustomerBtn) {
         addCustomerBtn.addEventListener('click', showAddCustomerModal);
     }
+    // ソートセレクトボックスのイベントリスナー
+    const sortType = document.getElementById('customer-sort-type');
+    const sortOrder = document.getElementById('customer-sort-order');
+    if (sortType) {
+        sortType.addEventListener('change', renderCustomersList);
+    }
+    if (sortOrder) {
+        sortOrder.addEventListener('change', renderCustomersList);
+    }
 }
 
 function renderCustomersList() {
@@ -1310,12 +1319,29 @@ function renderCustomersList() {
         }
     });
 
-    const customers = Array.from(customerMap.values());
+    let customers = Array.from(customerMap.values());
     const searchTerm = customerSearchInput ? customerSearchInput.value.toLowerCase() : '';
 
-    const filtered = customers.filter(c => {
+    // 検索フィルター
+    let filtered = customers.filter(c => {
         const name = (c.name || '').toLowerCase();
         return name.includes(searchTerm);
+    });
+
+    // ソート処理
+    const sortType = document.getElementById('customer-sort-type')?.value || 'name';
+    const sortOrder = document.getElementById('customer-sort-order')?.value || 'asc';
+
+    filtered.sort((a, b) => {
+        let comparison = 0;
+        if (sortType === 'name') {
+            // 五十音順（localeCompare使用）
+            comparison = (a.name || '').localeCompare(b.name || '', 'ja');
+        } else {
+            // 登録順（日付順）
+            comparison = new Date(a.lastOrderDate) - new Date(b.lastOrderDate);
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     if (filtered.length === 0) {
