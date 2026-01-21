@@ -49,6 +49,44 @@
               <label for="staff-name">受注者</label>
               <input type="text" id="staff-name" name="staffName" placeholder="担当者名">
             </div>
+          </div>
+        </section>
+
+        <!-- お客様情報 -->
+        <section class="form-section">
+          <h2 class="section-title">お客様情報</h2>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="customer-name">お客様氏名 <span style="font-size: 0.85em; color: #888;">(カタカナ入力)</span></label>
+              <input type="text" id="customer-name" name="customerName" placeholder="ヤマダ　タロウ" required>
+            </div>
+            <div class="form-group">
+              <label for="phone-number">お電話番号</label>
+              <input type="tel" id="phone-number" name="phoneNumber" placeholder="090-1234-5678">
+            </div>
+            <div class="form-group full-width">
+              <label for="delivery-address">配達先住所</label>
+              <input type="text" id="delivery-address" name="deliveryAddress" placeholder="配達先の住所">
+            </div>
+        </section>
+
+        <!-- 注文情報 -->
+        <section class="form-section">
+          <h2 class="section-title">注文情報</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>受け取り方法</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="deliveryMethod" value="配達" checked>
+                  <span>配達</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="deliveryMethod" value="来店">
+                  <span>来店</span>
+                </label>
+              </div>
+            </div>
             <div class="form-group">
               <label>ご注文日時</label>
               <div class="datetime-group">
@@ -86,42 +124,8 @@
                 </select>
               </div>
             </div>
-            <div class="form-group">
-              <label>受け取り方法</label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input type="radio" name="deliveryMethod" value="配達" checked>
-                  <span>配達</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" name="deliveryMethod" value="来店">
-                  <span>来店</span>
-                </label>
-              </div>
-            </div>
           </div>
         </section>
-
-        <!-- お客様情報 -->
-        <section class="form-section">
-          <h2 class="section-title">お客様情報</h2>
-          <div class="form-grid">
-            <div class="form-group full-width">
-              <label for="customer-name">お客様氏名 <span style="font-size: 0.85em; color: #888;">(カタカナ入力)</span></label>
-              <input type="text" id="customer-name" name="customerName" placeholder="お客様のお名前" required>
-            </div>
-            <div class="form-group">
-              <label for="phone-number">お電話番号</label>
-              <input type="tel" id="phone-number" name="phoneNumber" placeholder="090-1234-5678">
-            </div>
-            <div class="form-group full-width">
-              <label for="delivery-address">配達先住所</label>
-              <input type="text" id="delivery-address" name="deliveryAddress" placeholder="配達先の住所">
-            </div>
-          </div>
-        </section>
-
-        <!-- 注文商品 -->
         <section class="form-section">
           <h2 class="section-title">ご注文品</h2>
           <div id="products-container" class="products-container">
@@ -251,6 +255,14 @@
     <div id="customers-tab" class="tab-content">
       <div class="list-header">
         <input type="text" id="customer-search-input" class="search-input" placeholder="お客様名で検索...">
+        <select id="customer-sort-type" class="filter-select">
+          <option value="name">五十音順</option>
+          <option value="date">登録順</option>
+        </select>
+        <select id="customer-sort-order" class="filter-select">
+          <option value="asc">昇順</option>
+          <option value="desc">降順</option>
+        </select>
       </div>
       <div id="customers-list" class="orders-list">
         <!-- お客様リストはJavaScriptで動的に生成 -->
