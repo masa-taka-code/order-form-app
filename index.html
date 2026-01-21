@@ -240,11 +240,13 @@
     <div id="list-tab" class="tab-content">
       <div class="list-header">
         <input type="text" id="search-input" class="search-input" placeholder="顧客名・電話番号で検索...">
-        <select id="filter-status" class="filter-select">
-          <option value="all">すべて</option>
-          <option value="未処理">未処理</option>
-          <option value="処理済み">処理済み</option>
-        </select>
+        <div class="list-header-row">
+          <select id="filter-status" class="filter-select">
+            <option value="all">すべて</option>
+            <option value="未処理">未処理</option>
+            <option value="処理済み">処理済み</option>
+          </select>
+        </div>
       </div>
       <div id="orders-list" class="orders-list">
         <!-- 注文リストはJavaScriptで動的に生成 -->
@@ -255,14 +257,16 @@
     <div id="customers-tab" class="tab-content">
       <div class="list-header">
         <input type="text" id="customer-search-input" class="search-input" placeholder="お客様名で検索...">
-        <select id="customer-sort-type" class="filter-select">
-          <option value="name">五十音順</option>
-          <option value="date">登録順</option>
-        </select>
-        <select id="customer-sort-order" class="filter-select">
-          <option value="asc">昇順</option>
-          <option value="desc">降順</option>
-        </select>
+        <div class="list-header-row">
+          <select id="customer-sort-type" class="filter-select">
+            <option value="name">五十音順</option>
+            <option value="date">登録順</option>
+          </select>
+          <select id="customer-sort-order" class="filter-select">
+            <option value="asc">昇順</option>
+            <option value="desc">降順</option>
+          </select>
+        </div>
       </div>
       <div id="customers-list" class="orders-list">
         <!-- お客様リストはJavaScriptで動的に生成 -->
