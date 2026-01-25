@@ -500,7 +500,7 @@ function showOrderDetail(id) {
     if (!order) return;
     currentOrderId = id;
     detailContent.innerHTML = `
-        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>ご注文日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${order.receptionMethod}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${order.deliveryMethod}</p></div>
+        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${order.receptionMethod}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${order.deliveryMethod}</p></div>
         <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName)}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
         <div class="detail-section"><h3>注文商品 (${order.taxType})</h3><div class="detail-products">${order.products.map(p => `<div class="detail-product-item"><span>${escapeHtml(p.name)}</span><span>${p.quantity}個 × ¥${p.price.toLocaleString()} = ¥${(p.quantity * p.price).toLocaleString()}</span></div>`).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${order.totalAmount.toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
@@ -1040,7 +1040,7 @@ function generatePrintHtml(order) {
         <h2 class="print-title">ご注文承り書（お客様控え）</h2>
         <div class="print-form">
             <div class="print-row"><div class="print-cell header">受付日</div><div class="print-cell content">${formatDate(order.receptionDate)}</div><div class="print-cell header small">${order.receptionMethod === '来店' ? '✓' : ''}来店</div><div class="print-cell header small">${order.receptionMethod === '電話' ? '✓' : ''}電話</div><div class="print-cell header">受注者</div><div class="print-cell content">${escapeHtml(order.staffName || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">ご注文日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '来店' ? '✓' : ''}来店</div></div>
+            <div class="print-row" style="font-size: 1.2em;"><div class="print-cell header">お受け取り日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '店頭受け取り' ? '✓' : ''}店頭受け取り</div></div>
             <div class="print-row"><div class="print-cell header">お客様氏名</div><div class="print-cell content">${escapeHtml(order.customerName || '')}</div></div>
             <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content">${escapeHtml(order.phoneNumber || '')}</div></div>
             <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>単価</div><div>合計金額</div></div>${productsHtml}</div><div class="print-total-area">${totalHtml}</div></div>
@@ -1129,11 +1129,11 @@ function generatePrintHtmlForPaper(order) {
             <th rowspan="2">受注者</th>
             <td rowspan="2">${escapeHtml(order.staffName || '')}</td>
         </tr>
-        <tr>
-            <th>ご注文日時</th>
+        <tr style="font-size: 1.2em;">
+            <th>お受け取り日時</th>
             <td>${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
             <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '配達')}配達</td>
-            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '来店')}来店</td>
+            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '店頭受け取り')}店頭受け取り</td>
         </tr>
         <tr>
             <th>お客様氏名</th>
