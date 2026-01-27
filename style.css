@@ -1144,8 +1144,8 @@ textarea {
   justify-content: flex-end;
 }
 
-.print-product-item>div:nth-child(2),
-.print-product-item>div:nth-child(3) {}
+/* .print-product-item>div:nth-child(2),
+.print-product-item>div:nth-child(3) {}  空のルールセットを削除 */
 
 /* 備考欄 */
 .print-notes {
@@ -1667,4 +1667,115 @@ textarea {
     font-size: 1rem;
     min-width: 100px;
   }
+}
+
+/* =========================================
+   印刷レイアウト（統合版・Table構造）用スタイル
+   ========================================= */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+    /* ブラウザ印刷時の余白を確保 */
+  }
+
+  body {
+    margin: 0;
+    width: 100%;
+  }
+}
+
+.paper {
+  width: 100%;
+  max-width: 210mm;
+  /* プレビュー時の幅制限 */
+  margin: 0 auto;
+  box-sizing: border-box;
+  background: white;
+  color: black;
+  padding: 5mm;
+  /* 内側の余白を確保して枠線切れを防止 */
+}
+
+.paper-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  letter-spacing: 2px;
+}
+
+/* テーブル全体の固定レイアウト */
+.paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 2px solid #000;
+  margin-bottom: 20px;
+}
+
+/* セル共通設定 */
+.paper-table th,
+.paper-table td {
+  border: 1px solid #000;
+  padding: 4px;
+  font-size: 11pt;
+  vertical-align: middle;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* ヘッダー背景 */
+.paper-table th {
+  background-color: #f0f0f0;
+  text-align: center;
+}
+
+/* 商品テーブル（ネスト） */
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: none;
+}
+
+.product-table th,
+.product-table td {
+  border: 1px solid #000;
+  font-size: 10pt;
+  padding: 2px;
+}
+
+/* 合計欄 */
+.total-details {
+  padding: 5px;
+  text-align: right;
+  font-size: 10pt;
+}
+
+.total-main {
+  font-size: 14pt;
+  font-weight: bold;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  margin: 5px 0;
+}
+
+/* チェックボックス */
+.check-item {
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.check-box {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #000;
+  line-height: 12px;
+  text-align: center;
+  font-size: 10px;
+  margin-right: 3px;
+  vertical-align: middle;
 }
