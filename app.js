@@ -1027,31 +1027,8 @@ function generatePrintHtml(order) {
     const invoiceHtml = `<span class="print-checkbox"><span class="print-checkbox-box">${order.invoiceRequired ? '✓' : ''}</span><span>要</span></span>`;
 
     const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
-    const departmentsHtml = deptList.map(d => `<span class="print-checkbox"><span class="print-checkbox-box">${departments.includes(d) ? '✓' : ''}</span><span>${d}</span></span>`).join('');
-
-    // 合計金額表示（税込合計のみ）
-    const totalAmount = order.totalAmount || 0;
-    const totalHtml = `
-        <div class="print-total">合計（税込）<br>¥${totalAmount.toLocaleString()}</div>
-    `;
-
-    // ③タイトル追加、②お願い文言を削除、⑤店舗情報はCSS側で配置
-    return `
-        <h2 class="print-title">ご注文承り書（お客様控え）</h2>
-        <div class="print-form">
-            <div class="print-row"><div class="print-cell header">受付日</div><div class="print-cell content">${formatDate(order.receptionDate)}</div><div class="print-cell header small">${order.receptionMethod === '来店' ? '✓' : ''}来店</div><div class="print-cell header small">${order.receptionMethod === '電話' ? '✓' : ''}電話</div><div class="print-cell header">受注者</div><div class="print-cell content">${escapeHtml(order.staffName || '')}</div></div>
-            <div class="print-row" style="font-size: 1.2em;"><div class="print-cell header">お受け取り日時</div><div class="print-cell content">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</div><div class="print-cell header small">${order.deliveryMethod === '配達' ? '✓' : ''}配達</div><div class="print-cell header small">${order.deliveryMethod === '店頭受け取り' ? '✓' : ''}店頭受け取り</div></div>
-            <div class="print-row"><div class="print-cell header">お客様氏名</div><div class="print-cell content">${escapeHtml(order.customerName || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">お電話番号</div><div class="print-cell content">${escapeHtml(order.phoneNumber || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">ご注文品</div><div class="print-cell content print-products"><div class="print-product-header"><div>商品名</div><div>個数</div><div>単価</div><div>合計金額</div></div>${productsHtml}</div><div class="print-total-area">${totalHtml}</div></div>
-            <div class="print-row"><div class="print-cell header">詳細・備考</div><div class="print-cell content print-notes">${escapeHtml(order.notes || '').replace(/\n/g, '<br>')}</div></div>
-            <div class="print-row"><div class="print-cell header">配達先住所</div><div class="print-cell content">${escapeHtml(order.deliveryAddress || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">代金</div><div class="print-cell content"><div class="print-checkbox-group">${paymentHtml}</div></div></div>
-            <div class="print-row"><div class="print-cell header">納品請求書</div><div class="print-cell content"><div class="print-checkbox-group">${invoiceHtml}</div></div></div>
-            <div class="print-row"><div class="print-cell header">ご請求先<br>領収書宛名</div><div class="print-cell content">${escapeHtml(order.billingName || '')}</div></div>
-            <div class="print-row"><div class="print-cell header">部門</div><div class="print-cell content"><div class="print-checkbox-group">${departmentsHtml}</div></div></div>
-        </div>
-    `;
+    // 画面表示用も印刷用（紙、Tableレイアウト）に統一する
+    return generatePrintHtmlForPaper(order);
 }
 
 // 印刷専用HTML生成（table構造で印刷に強いレイアウト）
@@ -1064,7 +1041,7 @@ function generatePrintHtmlForPaper(order) {
         ? products.map(p => {
             const taxLabel = p.taxType || '税込';
             const taxRateLabel = p.taxRate ? `${p.taxRate}%` : '';
-            const priceDisplay = `¥${(p.price || 0).toLocaleString()}(${taxLabel}${taxRateLabel})`;
+            const priceDisplay = `¥${(p.price || 0).toLocaleString()}<br><span style="font-size: 0.85em;">(${taxLabel}${taxRateLabel})</span>`;
             const subtotal = p.subtotal || (p.quantity || 0) * (p.price || 0);
             return `<tr><td>${escapeHtml(p.name || '')}</td><td>${p.quantity || 0}</td><td>${priceDisplay}</td><td>¥${subtotal.toLocaleString()}</td></tr>`;
         }).join('')
@@ -1116,25 +1093,70 @@ function generatePrintHtmlForPaper(order) {
         totalDetailsHtml += `<div class="total-detail-item">（内消費税等　¥${innerTaxTotal.toLocaleString()}）</div>`;
     }
 
-    return `
+
+    // 埋め込みスタイル（外部CSSに依存せず確実に反映させる）
+    const styleBlock = `
+        <style>
+            @media print {
+                @page { size: A4; margin: 0; }
+                body { margin: 0; width: 100%; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+                .app-container, .nav-tabs, .modal-header, .modal-actions { display: none !important; }
+            }
+            .paper {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0 auto;
+                padding: 15mm; /* 余白確保 */
+                background: white;
+                box-sizing: border-box;
+                font-family: sans-serif;
+                position: relative;
+            }
+            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; letter-spacing: 2px; }
+            .paper-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #000; margin-bottom: 20px; }
+            .paper-table th, .paper-table td { border: 1px solid #000; padding: 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
+            .paper-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+            /* 商品テーブル */
+            .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
+            .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
+            .product-table th { background-color: transparent; }
+            /* 合計 */
+            .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
+            .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
+            /* チェックボックス */
+            .check-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; font-size: 12px; margin-right: 2px; }
+            .check-item { margin-right: 12px; display: inline-block; }
+        </style>
+    `;
+
+    return styleBlock + `
 <div class="paper">
     <h1 class="paper-title">ご注文承り書（お客様控え）</h1>
     
-    <table class="paper-table">
+    <table class="paper-table" style="table-layout: fixed; width: 100%;">
+        <colgroup>
+            <col style="width: 15%;">
+            <col style="width: auto;">
+            <col style="width: 13%;">
+            <col style="width: 13%;">
+            <col style="width: 35mm;">
+            <col style="width: 35mm;">
+        </colgroup>
         <tr>
             <th>受付日</th>
             <td>${formatDate(order.receptionDate)}</td>
-            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
-            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
-            <th rowspan="2">受注者</th>
-            <td rowspan="2">${escapeHtml(order.staffName || '')}</td>
+            <td style="text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
+            <td style="text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
+            <th style="font-size: 0.85em;">受注者</th>
+            <td style="font-size: 0.85em;">${escapeHtml(order.staffName || '')}</td>
         </tr>
-        <tr style="font-size: 1.2em;">
-            <th>お受け取り日時</th>
-            <td>${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
-            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '配達')}配達</td>
-            <td style="width: 25mm; min-width: 25mm; text-align: center;">${checkbox(order.deliveryMethod === '店頭受け取り')}店頭受け取り</td>
+        <tr style="font-size: 1.2em !important; font-weight: bold;">
+            <th style="background: #f0f0f0;">お受け取り日時</th>
+            <td colspan="3" style="background: #fffde7;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
+            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '配達')}配達</td>
+            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '店頭')}店頭</td>
         </tr>
+
         <tr>
             <th>お客様氏名</th>
             <td colspan="5">${escapeHtml(order.customerName || '')}</td>
@@ -1145,17 +1167,23 @@ function generatePrintHtmlForPaper(order) {
         </tr>
         <tr>
             <th>ご注文品</th>
-            <td colspan="4" style="padding: 0;">
-                <table class="product-table">
-                    <thead>
-                        <tr><th style="width: 45%;">商品名</th><th style="width: 12%;">個数</th><th style="width: 23%;">単価</th><th style="width: 20%;">合計金額</th></tr>
-                    </thead>
-                    <tbody>
-                        ${productsRows}
-                    </tbody>
-                </table>
+            <td colspan="5" style="padding: 0; vertical-align: top;">
+                <div style="display: flex; width: 100%;">
+                    <div style="flex: 1; border-right: 1px solid #000;">
+                        <table class="product-table">
+                            <thead>
+                                <tr><th style="width: 50%;">商品名</th><th style="width: 10%;">個数</th><th style="width: 25%;">単価</th><th style="width: 15%;">合計金額</th></tr>
+                            </thead>
+                            <tbody>
+                                ${productsRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-cell" style="width: 55mm; flex: none;">
+                        <div class="total-details">${totalDetailsHtml}</div>
+                    </div>
+                </div>
             </td>
-            <td class="total-cell"><div class="total-details">${totalDetailsHtml}</div></td>
         </tr>
         <tr>
             <th>詳細・備考</th>
