@@ -1150,9 +1150,9 @@ function generatePrintHtmlForPaper(order) {
             <th style="font-size: 0.85em;">受注者</th>
             <td style="font-size: 0.85em;">${escapeHtml(order.staffName || '')}</td>
         </tr>
-        <tr style="font-size: 1.2em !important; font-weight: bold;">
+        <tr style="font-weight: bold;">
             <th style="background: #f0f0f0;">お受け取り日時</th>
-            <td colspan="3" style="background: #fffde7;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
+            <td colspan="3" style="background: #fffde7; font-size: 1.2em; line-height: 1.2;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
             <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '配達')}配達</td>
             <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '店頭')}店頭</td>
         </tr>
