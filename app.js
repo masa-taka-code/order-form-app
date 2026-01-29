@@ -1159,7 +1159,7 @@ function generatePrintHtmlForPaper(order) {
 
         <tr>
             <th>お客様氏名</th>
-            <td colspan="5">${escapeHtml(order.customerName || '')}</td>
+            <td colspan="5" style="font-size: 1.1em;">${escapeHtml(order.customerName || '')}</td>
         </tr>
         <tr>
             <th>お電話番号</th>
