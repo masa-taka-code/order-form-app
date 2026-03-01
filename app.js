@@ -616,10 +616,11 @@ function showPrintPreview(id) {
     if (!order) return;
     currentOrderId = id;
 
-    // PDF印刷と同じHTMLを生成
-    const printHtml = generatePrintHtmlForPaper(order);
+    // お客様控えと店舗控えの両方を生成
+    const customerCopyHtml = generateCustomerCopyHtml(order);
+    const storeCopyHtml = generatePrintHtmlForPaper(order);
 
-    // PDF印刷と同じスタイルを埋め込む（完全一致）
+    // プレビュー用スタイル
     const printStyles = `
         <style>
             /* === リセット === */
@@ -764,23 +765,42 @@ function showPrintPreview(id) {
                 margin-top: 5mm;
                 padding-right: 5mm;
             }
+
+            /* === ページ区切り（プレビュー用） === */
+            .print-preview-a4 .preview-page-divider {
+                border: none;
+                border-top: 3px dashed #ccc;
+                margin: 10mm 0;
+            }
+
+            .print-preview-a4 .preview-page-label {
+                text-align: center;
+                color: #999;
+                font-size: 10pt;
+                margin: 5mm 0;
+            }
         </style>
     `;
 
     printContent.innerHTML = `
         ${printStyles}
         <div class="print-preview-a4">
-            ${printHtml}
+            <p class="preview-page-label">【1ページ目：お客様控え】</p>
+            ${customerCopyHtml}
+            <hr class="preview-page-divider">
+            <p class="preview-page-label">【2ページ目：店舗控え】</p>
+            ${storeCopyHtml}
         </div>
     `;
     printModal.classList.add('active');
 }
 
-// 注文データを受け取って直接印刷を実行
+// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控えの2ページ一括）
 function executePrintForOrder(order) {
-    const printHtml = generatePrintHtmlForPaper(order);
+    const customerCopyHtml = generateCustomerCopyHtml(order);
+    const storeCopyHtml = generatePrintHtmlForPaper(order);
 
-    // 印刷専用HTML+CSS（紙として成立するレイアウト）
+    // 印刷専用HTML+CSS（2ページ：お客様控え→店舗控え）
     const fullHtml = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -873,7 +893,6 @@ function executePrintForOrder(order) {
         }
         
         /* === 合計エリア === */
-        /* === 合計エリア === */
         .total-cell {
             text-align: right !important;
             font-weight: bold;
@@ -932,12 +951,17 @@ function executePrintForOrder(order) {
             margin-top: 5mm;
             padding-right: 5mm;
         }
+
+        /* === 改ページ用 === */
+        .page-break {
+            page-break-after: always;
+            break-after: page;
+        }
         
         /* === 印刷時のスタイル === */
         @media print {
             html, body {
                 width: 210mm;
-                height: 297mm;
                 margin: 0;
                 padding: 0;
             }
@@ -975,7 +999,14 @@ function executePrintForOrder(order) {
     </style>
 </head>
 <body>
-    ${printHtml}
+    <!-- 1ページ目：お客様控え -->
+    <div class="page-break">
+        ${customerCopyHtml}
+    </div>
+    <!-- 2ページ目：店舗控え -->
+    <div>
+        ${storeCopyHtml}
+    </div>
     <script>
         window.onload = function() {
             window.print();
@@ -1131,7 +1162,7 @@ function generatePrintHtmlForPaper(order) {
 
     return styleBlock + `
 <div class="paper">
-    <h1 class="paper-title">ご注文承り書（お客様控え）</h1>
+    <h1 class="paper-title">ご注文承り書（店舗控え）</h1>
     
     <table class="paper-table" style="table-layout: fixed; width: 100%;">
         <colgroup>
@@ -1208,6 +1239,160 @@ function generatePrintHtmlForPaper(order) {
         <tr>
             <th>部門</th>
             <td colspan="5"><span class="check-group">${deptChecks}</span></td>
+        </tr>
+    </table>
+    
+    <div class="store-info">
+        <div>スーパーマーケット玉木屋</div>
+        <div>0193-63-2711</div>
+    </div>
+</div>
+    `;
+}
+
+// お客様控え用HTML生成（代金・納品請求書・請求先・部門を省略）
+function generateCustomerCopyHtml(order) {
+    const products = order.products || [];
+
+    // 商品行を生成
+    const productsRows = products.length > 0
+        ? products.map(p => {
+            const taxLabel = p.taxType || '税込';
+            const taxRateLabel = p.taxRate ? `${p.taxRate}%` : '';
+            const priceDisplay = `¥${(p.price || 0).toLocaleString()}<br><span style="font-size: 0.85em;">(${taxLabel}${taxRateLabel})</span>`;
+            const subtotal = p.subtotal || (p.quantity || 0) * (p.price || 0);
+            return `<tr><td>${escapeHtml(p.name || '')}</td><td>${p.quantity || 0}</td><td>${priceDisplay}</td><td>¥${subtotal.toLocaleString()}</td></tr>`;
+        }).join('')
+        : '<tr><td colspan="4">（商品なし）</td></tr>';
+
+    // チェックボックス生成ヘルパー
+    const checkbox = (checked) => `<span class="check-box">${checked ? '✓' : ''}</span>`;
+
+    // 詳細な合計計算情報
+    const subtotal = order.subtotal || 0;
+    const taxExcluded8Total = order.taxExcluded8Total || 0;
+    const tax8Amount = order.tax8Amount || 0;
+    const taxExcluded10Total = order.taxExcluded10Total || 0;
+    const tax10Amount = order.tax10Amount || 0;
+    const itemCount = order.itemCount || 0;
+    const totalAmount = order.totalAmount || 0;
+    const innerTaxTotal = order.innerTaxTotal || 0;
+
+    // 合計明細を生成
+    let totalDetailsHtml = `<div class="total-detail-item">小計　¥${subtotal.toLocaleString()}</div>`;
+
+    if (taxExcluded8Total > 0) {
+        totalDetailsHtml += `<div class="total-detail-item">（外税8%対象額　¥${taxExcluded8Total.toLocaleString()}）</div>`;
+        totalDetailsHtml += `<div class="total-detail-item">外税額　8%　¥${tax8Amount.toLocaleString()}</div>`;
+    }
+
+    if (taxExcluded10Total > 0) {
+        totalDetailsHtml += `<div class="total-detail-item">（外税10%対象額　¥${taxExcluded10Total.toLocaleString()}）</div>`;
+        totalDetailsHtml += `<div class="total-detail-item">外税額　10%　¥${tax10Amount.toLocaleString()}</div>`;
+    }
+
+    totalDetailsHtml += `<div class="total-detail-item">買上点数　${itemCount}点</div>`;
+    totalDetailsHtml += `<div class="total-detail-item total-main">合計　¥${totalAmount.toLocaleString()}</div>`;
+
+    if (innerTaxTotal > 0) {
+        totalDetailsHtml += `<div class="total-detail-item">（内消費税等　¥${innerTaxTotal.toLocaleString()}）</div>`;
+    }
+
+    // スタイルブロックはgeneratePrintHtmlForPaperと同じものを使用
+    const styleBlock = `
+        <style>
+            @media print {
+                @page { size: A4; margin: 0; }
+                body { margin: 0; width: 100%; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+                .app-container, .nav-tabs, .modal-header, .modal-actions { display: none !important; }
+            }
+            .paper {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0 auto;
+                padding: 15mm;
+                background: white;
+                box-sizing: border-box;
+                font-family: sans-serif;
+                position: relative;
+            }
+            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; letter-spacing: 2px; }
+            .paper-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #000; margin-bottom: 20px; }
+            .paper-table th, .paper-table td { border: 1px solid #000; padding: 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
+            .paper-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+            .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
+            .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
+            .product-table th { background-color: transparent; }
+            .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
+            .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
+            .check-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; font-size: 12px; margin-right: 2px; }
+            .check-item { margin-right: 12px; display: inline-block; }
+        </style>
+    `;
+
+    return styleBlock + `
+<div class="paper">
+    <h1 class="paper-title">ご注文承り書（お客様控え）</h1>
+    
+    <table class="paper-table" style="table-layout: fixed; width: 100%;">
+        <colgroup>
+            <col style="width: 15%;">
+            <col style="width: auto;">
+            <col style="width: 13%;">
+            <col style="width: 13%;">
+            <col style="width: 35mm;">
+            <col style="width: 35mm;">
+        </colgroup>
+        <tr>
+            <th>受付日</th>
+            <td>${formatDate(order.receptionDate)}</td>
+            <td style="text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
+            <td style="text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
+            <th style="font-size: 0.85em;">受注者</th>
+            <td style="font-size: 0.85em;">${escapeHtml(order.staffName || '')}</td>
+        </tr>
+        <tr style="font-weight: bold;">
+            <th style="background: #f0f0f0;">お受け取り<br>日時</th>
+            <td colspan="3" style="background: #fffde7; font-size: 1.2em; line-height: 1.2;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
+            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '配達')}配達</td>
+            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '店頭')}店頭</td>
+        </tr>
+
+        <tr>
+            <th>お客様氏名</th>
+            <td colspan="5" style="font-size: 1.1em;">${escapeHtml(order.customerName || '')}</td>
+        </tr>
+        <tr>
+            <th>お電話番号</th>
+            <td colspan="5">${escapeHtml(order.phoneNumber || '')}</td>
+        </tr>
+        <tr>
+            <th>ご注文品</th>
+            <td colspan="5" style="padding: 0; vertical-align: top;">
+                <div style="display: flex; width: 100%;">
+                    <div style="flex: 1; border-right: 1px solid #000;">
+                        <table class="product-table">
+                            <thead>
+                                <tr><th style="width: 50%;">商品名</th><th style="width: 10%;">個数</th><th style="width: 25%;">単価</th><th style="width: 15%;">合計金額</th></tr>
+                            </thead>
+                            <tbody>
+                                ${productsRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="total-cell" style="width: 55mm; flex: none;">
+                        <div class="total-details">${totalDetailsHtml}</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th>詳細・備考</th>
+            <td colspan="5" style="min-height: 20mm;">${escapeHtml(order.notes || '').replace(/\n/g, '<br>')}</td>
+        </tr>
+        <tr>
+            <th>配達先住所</th>
+            <td colspan="5">${escapeHtml(order.deliveryAddress || '')}</td>
         </tr>
     </table>
     
