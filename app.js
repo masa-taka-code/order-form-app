@@ -1007,6 +1007,21 @@ function executePrintForOrder(order) {
     <div>
         ${storeCopyHtml}
     </div>
+    <!-- 印刷時の最終オーバーライド（後続の重複スタイルに確実に勝つ） -->
+    <style>
+        @media print {
+            .paper {
+                min-height: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+        }
+    </style>
     <script>
         window.onload = function() {
             window.print();
