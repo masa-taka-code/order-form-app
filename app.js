@@ -88,6 +88,7 @@ const summaryList = document.getElementById('summary-list');
 const searchInput = document.getElementById('search-input');
 const summarySearchInput = document.getElementById('summary-search-input');
 const filterStatus = document.getElementById('filter-status');
+const filterPrint = document.getElementById('filter-print');
 const exportBtn = document.getElementById('export-btn');
 const importFile = document.getElementById('import-file');
 const backToListBtn = document.getElementById('back-to-list-btn');
@@ -351,9 +352,12 @@ function renderOrdersList() {
     const orders = getOrders();
     const searchTerm = searchInput.value.toLowerCase();
     const statusFilter = filterStatus.value;
+    const printFilter = filterPrint.value;
     let filtered = orders;
     if (searchTerm) filtered = filtered.filter(o => o.customerName.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
     if (statusFilter !== 'all') filtered = filtered.filter(o => o.status === statusFilter);
+    if (printFilter === 'printed') filtered = filtered.filter(o => o.isPrinted);
+    if (printFilter === 'unprinted') filtered = filtered.filter(o => !o.isPrinted);
 
     if (filtered.length === 0) {
         ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
@@ -367,6 +371,7 @@ function renderOrdersList() {
                 <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status}</span>
             </div>
             <div class="order-card-body">
+                <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
                 <div class="order-card-info">📞 ${escapeHtml(order.phoneNumber || '未登録')}</div>
                 <div class="order-card-info">🚚 ${order.deliveryMethod}</div>
                 <div class="order-card-amount">合計: ¥${order.totalAmount.toLocaleString()}</div>
@@ -472,6 +477,7 @@ if (customerNameInput) {
 
 searchInput.addEventListener('input', renderOrdersList);
 filterStatus.addEventListener('change', renderOrdersList);
+filterPrint.addEventListener('change', renderOrdersList);
 
 function toggleOrderStatus(id) {
     const orders = getOrders();
@@ -560,7 +566,7 @@ function editOrder(id) {
                 const timeParts = dt[1].split(':');
                 setValueSafe('order-hour', timeParts[0]);
                 const orderMinuteEl = document.getElementById('order-minute');
-                if (orderMinuteEl) orderMinuteEl.value = timeParts[1] === '30' ? '30' : '00';
+                if (orderMinuteEl) orderMinuteEl.value = timeParts[1];
             }
         }
 
@@ -1427,6 +1433,10 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
 
     // 新しいウィンドウで印刷用ページを開き、PDFとして保存を促す
     executePrintForOrder(order);
+
+    // 印刷済みとして記録
+    updateOrder(order.id, { isPrinted: true });
+    renderOrdersList();
 
     // プレビューモーダルを閉じる
     printModal.classList.remove('active');

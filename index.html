@@ -120,7 +120,11 @@
                 </select>
                 <select id="order-minute" name="orderMinute">
                   <option value="00">00分</option>
+                  <option value="10">10分</option>
+                  <option value="20">20分</option>
                   <option value="30">30分</option>
+                  <option value="40">40分</option>
+                  <option value="50">50分</option>
                 </select>
               </div>
             </div>
@@ -245,6 +249,11 @@
             <option value="all">すべて</option>
             <option value="未処理">未処理</option>
             <option value="処理済み">処理済み</option>
+          </select>
+          <select id="filter-print" class="filter-select">
+            <option value="all">印刷: すべて</option>
+            <option value="printed">印刷済み</option>
+            <option value="unprinted">未印刷</option>
           </select>
         </div>
       </div>
