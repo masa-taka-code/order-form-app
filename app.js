@@ -622,9 +622,10 @@ function showPrintPreview(id) {
     if (!order) return;
     currentOrderId = id;
 
-    // お客様控えと店舗控えの両方を生成
+    // お客様控え・店舗控え・部門控えを生成
     const customerCopyHtml = generateCustomerCopyHtml(order);
     const storeCopyHtml = generatePrintHtmlForPaper(order);
+    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
 
     // プレビュー用スタイル
     const printStyles = `
@@ -796,17 +797,21 @@ function showPrintPreview(id) {
             <hr class="preview-page-divider">
             <p class="preview-page-label">【2ページ目：店舗控え】</p>
             ${storeCopyHtml}
+            <hr class="preview-page-divider">
+            <p class="preview-page-label">【3ページ目：部門控え】</p>
+            ${departmentCopyHtml}
         </div>
     `;
     printModal.classList.add('active');
 }
 
-// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控えの2ページ一括）
+// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
 function executePrintForOrder(order) {
     const customerCopyHtml = generateCustomerCopyHtml(order);
     const storeCopyHtml = generatePrintHtmlForPaper(order);
+    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
 
-    // 印刷専用HTML+CSS（2ページ：お客様控え→店舗控え）
+    // 印刷専用HTML+CSS（3ページ：お客様控え→店舗控え→部門控え）
     const fullHtml = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -1010,8 +1015,12 @@ function executePrintForOrder(order) {
         ${customerCopyHtml}
     </div>
     <!-- 2ページ目：店舗控え -->
-    <div>
+    <div class="page-break">
         ${storeCopyHtml}
+    </div>
+    <!-- 3ページ目：部門控え -->
+    <div>
+        ${departmentCopyHtml}
     </div>
     <!-- 印刷時の最終オーバーライド（後続の重複スタイルに確実に勝つ） -->
     <style>
@@ -1084,7 +1093,7 @@ function generatePrintHtml(order) {
 }
 
 // 印刷専用HTML生成（table構造で印刷に強いレイアウト）
-function generatePrintHtmlForPaper(order) {
+function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     const products = order.products || [];
     const departments = order.departments || [];
 
@@ -1183,7 +1192,7 @@ function generatePrintHtmlForPaper(order) {
 
     return styleBlock + `
 <div class="paper">
-    <h1 class="paper-title">ご注文承り書（店舗控え）</h1>
+    <h1 class="paper-title">ご注文承り書（${titleLabel}）</h1>
     
     <table class="paper-table" style="table-layout: fixed; width: 100%;">
         <colgroup>
