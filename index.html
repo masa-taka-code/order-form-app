@@ -295,8 +295,14 @@
             <label for="setting-store-phone">電話番号</label>
             <input type="text" id="setting-store-phone" placeholder="0193-63-2711">
           </div>
+          <div class="form-group">
+            <label for="setting-instagram-qr">InstagramのQRコード画像</label>
+            <img id="setting-instagram-qr-preview" src="" alt="QRコードプレビュー" style="display:none; width:80px; height:80px; margin-bottom:8px; border:1px solid #ccc;">
+            <input type="file" id="setting-instagram-qr" accept="image/*">
+            <button type="button" id="clear-instagram-qr-btn" class="btn btn-secondary full-width" style="margin-top:8px;">QRコード画像を削除</button>
+          </div>
           <button id="save-settings-btn" class="btn btn-primary full-width">保存</button>
-          <p class="settings-description">印刷物（お客様控え・店舗控え・部門控え）の右下に表示される店舗名・電話番号です。</p>
+          <p class="settings-description">店舗名・電話番号は印刷物（お客様控え・店舗控え・部門控え）の右下に表示されます。QRコード画像はお客様控えのみ、電話番号の下に表示されます。</p>
         </div>
         <h2>データ管理</h2>
         <div class="settings-section">

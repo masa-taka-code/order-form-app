@@ -47,7 +47,8 @@ function getSettings() {
     const settings = data ? JSON.parse(data) : {};
     return {
         storeName: settings.storeName || DEFAULT_STORE_NAME,
-        storePhone: settings.storePhone || DEFAULT_STORE_PHONE
+        storePhone: settings.storePhone || DEFAULT_STORE_PHONE,
+        instagramQrImage: settings.instagramQrImage || ''
     };
 }
 
@@ -1445,10 +1446,11 @@ function generateCustomerCopyHtml(order) {
             <td colspan="5">${escapeHtml(order.deliveryAddress || '')}</td>
         </tr>
     </table>
-    
+
     <div class="store-info">
         <div>${escapeHtml(settings.storeName)}</div>
         <div>${escapeHtml(settings.storePhone)}</div>
+        ${settings.instagramQrImage ? `<img src="${settings.instagramQrImage}" alt="Instagram QRコード" style="width:24mm; height:24mm; margin-top:2mm;">` : ''}
     </div>
 </div>
     `;
@@ -1487,19 +1489,62 @@ document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('cli
 
 const settingStoreNameInput = document.getElementById('setting-store-name');
 const settingStorePhoneInput = document.getElementById('setting-store-phone');
+const settingInstagramQrInput = document.getElementById('setting-instagram-qr');
+const settingInstagramQrPreview = document.getElementById('setting-instagram-qr-preview');
+const clearInstagramQrBtn = document.getElementById('clear-instagram-qr-btn');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+// 保存ボタンを押すまでの一時的な選択状態（undefined: 変更なし、''：削除、それ以外：新しい画像）
+let pendingQrImage;
+
+function updateQrPreview(dataUrl) {
+    if (dataUrl) {
+        settingInstagramQrPreview.src = dataUrl;
+        settingInstagramQrPreview.style.display = '';
+    } else {
+        settingInstagramQrPreview.src = '';
+        settingInstagramQrPreview.style.display = 'none';
+    }
+}
 
 function loadSettingsForm() {
     const settings = getSettings();
     settingStoreNameInput.value = settings.storeName;
     settingStorePhoneInput.value = settings.storePhone;
+    settingInstagramQrInput.value = '';
+    pendingQrImage = undefined;
+    updateQrPreview(settings.instagramQrImage);
 }
 loadSettingsForm();
 
+settingInstagramQrInput.addEventListener('change', () => {
+    const file = settingInstagramQrInput.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) {
+        alert('画像サイズが大きすぎます（500KB以下にしてください）');
+        settingInstagramQrInput.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        pendingQrImage = e.target.result;
+        updateQrPreview(pendingQrImage);
+    };
+    reader.readAsDataURL(file);
+});
+
+clearInstagramQrBtn.addEventListener('click', () => {
+    pendingQrImage = '';
+    settingInstagramQrInput.value = '';
+    updateQrPreview('');
+});
+
 saveSettingsBtn.addEventListener('click', () => {
+    const currentSettings = getSettings();
     saveSettings({
         storeName: settingStoreNameInput.value.trim() || DEFAULT_STORE_NAME,
-        storePhone: settingStorePhoneInput.value.trim() || DEFAULT_STORE_PHONE
+        storePhone: settingStorePhoneInput.value.trim() || DEFAULT_STORE_PHONE,
+        instagramQrImage: pendingQrImage !== undefined ? pendingQrImage : currentSettings.instagramQrImage
     });
     loadSettingsForm();
     alert('店舗情報を保存しました');
