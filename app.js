@@ -37,6 +37,24 @@ function deleteOrder(id) {
     saveOrders(filtered);
 }
 
+// ===== 店舗情報設定 =====
+const SETTINGS_KEY = 'orderFormAppSettings';
+const DEFAULT_STORE_NAME = 'スーパーマーケット玉木屋';
+const DEFAULT_STORE_PHONE = '0193-63-2711';
+
+function getSettings() {
+    const data = localStorage.getItem(SETTINGS_KEY);
+    const settings = data ? JSON.parse(data) : {};
+    return {
+        storeName: settings.storeName || DEFAULT_STORE_NAME,
+        storePhone: settings.storePhone || DEFAULT_STORE_PHONE
+    };
+}
+
+function saveSettings(settings) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
 // ===== お客様データ管理 =====
 const CUSTOMER_STORAGE_KEY = 'customerListData';
 
@@ -1096,6 +1114,7 @@ function generatePrintHtml(order) {
 function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     const products = order.products || [];
     const departments = order.departments || [];
+    const settings = getSettings();
 
     // 商品行を生成
     const productsRows = products.length > 0
@@ -1273,8 +1292,8 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     </table>
     
     <div class="store-info">
-        <div>スーパーマーケット玉木屋</div>
-        <div>0193-63-2711</div>
+        <div>${escapeHtml(settings.storeName)}</div>
+        <div>${escapeHtml(settings.storePhone)}</div>
     </div>
 </div>
     `;
@@ -1283,6 +1302,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
 // お客様控え用HTML生成（代金・納品請求書・請求先・部門を省略）
 function generateCustomerCopyHtml(order) {
     const products = order.products || [];
+    const settings = getSettings();
 
     // 商品行を生成
     const productsRows = products.length > 0
@@ -1427,8 +1447,8 @@ function generateCustomerCopyHtml(order) {
     </table>
     
     <div class="store-info">
-        <div>スーパーマーケット玉木屋</div>
-        <div>0193-63-2711</div>
+        <div>${escapeHtml(settings.storeName)}</div>
+        <div>${escapeHtml(settings.storePhone)}</div>
     </div>
 </div>
     `;
@@ -1464,6 +1484,26 @@ backToListBtn.addEventListener('click', () => {
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
 document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); }));
+
+const settingStoreNameInput = document.getElementById('setting-store-name');
+const settingStorePhoneInput = document.getElementById('setting-store-phone');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+function loadSettingsForm() {
+    const settings = getSettings();
+    settingStoreNameInput.value = settings.storeName;
+    settingStorePhoneInput.value = settings.storePhone;
+}
+loadSettingsForm();
+
+saveSettingsBtn.addEventListener('click', () => {
+    saveSettings({
+        storeName: settingStoreNameInput.value.trim() || DEFAULT_STORE_NAME,
+        storePhone: settingStorePhoneInput.value.trim() || DEFAULT_STORE_PHONE
+    });
+    loadSettingsForm();
+    alert('店舗情報を保存しました');
+});
 
 exportBtn.addEventListener('click', () => {
     const orders = getOrders();
