@@ -154,7 +154,7 @@ function createProductRow() {
         </select>
         <select class="product-tax-rate">
             <option value="10">10%</option>
-            <option value="8">8%</option>
+            <option value="8" selected>8%</option>
         </select>
         <span class="product-subtotal">¥0</span>
         <button type="button" class="remove-product-btn">×</button>
@@ -1450,7 +1450,7 @@ function generateCustomerCopyHtml(order) {
     <div class="store-info">
         <div>${escapeHtml(settings.storeName)}</div>
         <div>${escapeHtml(settings.storePhone)}</div>
-        ${settings.instagramQrImage ? `<img src="${settings.instagramQrImage}" alt="Instagram QRコード" style="width:36mm; height:36mm; margin-top:2mm;">` : ''}
+        ${settings.instagramQrImage ? `<img src="${settings.instagramQrImage}" alt="Instagram QRコード" style="width:36mm; height:36mm; margin:2mm -3mm 0 auto; padding:3mm; background:#fff; display:block; box-sizing:content-box; image-rendering:pixelated;">` : ''}
     </div>
 </div>
     `;
