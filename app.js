@@ -1,13 +1,29 @@
 // ===== Order Form App =====
 const STORAGE_KEY = 'orderFormAppData';
 
+// localStorageへの保存。容量超過などで失敗した場合は、
+// 保存できなかったことをユーザーに伝えたうえで呼び出し元に例外を投げ直す
+// （黙って失敗すると、保存できたと誤解したまま作業が進むため）。
+function saveToStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        const isQuotaError = error instanceof DOMException &&
+            (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+        alert(isQuotaError
+            ? '保存できませんでした。ブラウザの保存容量が上限に達しています。\n不要な注文データを削除するか、設定画面のQRコード画像を小さいものに差し替えてください。'
+            : `保存できませんでした：${error.message}`);
+        throw error;
+    }
+}
+
 function getOrders() {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
 }
 
 function saveOrders(orders) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    saveToStorage(STORAGE_KEY, orders);
 }
 
 function addOrder(order) {
@@ -53,7 +69,7 @@ function getSettings() {
 }
 
 function saveSettings(settings) {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    saveToStorage(SETTINGS_KEY, settings);
 }
 
 // ===== お客様データ管理 =====
@@ -65,7 +81,7 @@ function getCustomers() {
 }
 
 function saveCustomers(customers) {
-    localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customers));
+    saveToStorage(CUSTOMER_STORAGE_KEY, customers);
 }
 
 function addCustomer(customer) {
@@ -163,12 +179,11 @@ function createProductRow() {
         const quantity = parseInt(row.querySelector('.product-quantity').value) || 0;
         const price = parseInt(row.querySelector('.product-price').value) || 0;
         const taxType = row.querySelector('.product-tax-type').value;
-        const taxRate = parseInt(row.querySelector('.product-tax-rate').value) / 100;
 
-        let subtotal = quantity * price;
-        if (taxType === '税抜') {
-            subtotal = Math.floor(subtotal * (1 + taxRate));
-        }
+        // 税額は税率ごとに合計欄で一括して端数処理するため、
+        // 行の小計は税を加算しない金額（印刷物の「合計金額」列と同じ）を表示する。
+        // 行ごとに切り捨てると、合算方式で計算する合計と1円ずれるため。
+        const subtotal = quantity * price;
         row.querySelector('.product-subtotal').textContent = `¥${subtotal.toLocaleString()}`;
 
         // 単価欄のラベル更新
@@ -373,7 +388,7 @@ function renderOrdersList() {
     const statusFilter = filterStatus.value;
     const printFilter = filterPrint.value;
     let filtered = orders;
-    if (searchTerm) filtered = filtered.filter(o => o.customerName.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
+    if (searchTerm) filtered = filtered.filter(o => o.customerName?.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
     if (statusFilter !== 'all') filtered = filtered.filter(o => o.status === statusFilter);
     if (printFilter === 'printed') filtered = filtered.filter(o => o.isPrinted);
     if (printFilter === 'unprinted') filtered = filtered.filter(o => !o.isPrinted);
@@ -392,8 +407,8 @@ function renderOrdersList() {
             <div class="order-card-body">
                 <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
                 <div class="order-card-info">📞 ${escapeHtml(order.phoneNumber || '未登録')}</div>
-                <div class="order-card-info">🚚 ${order.deliveryMethod}</div>
-                <div class="order-card-amount">合計: ¥${order.totalAmount.toLocaleString()}</div>
+                <div class="order-card-info">🚚 ${escapeHtml(order.deliveryMethod || '未設定')}</div>
+                <div class="order-card-amount">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div>
             </div>
             <div class="order-card-actions">
                 <button class="btn btn-secondary view-btn" data-id="${order.id}">詳細</button>
@@ -525,11 +540,11 @@ function showOrderDetail(id) {
     if (!order) return;
     currentOrderId = id;
     detailContent.innerHTML = `
-        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${order.receptionMethod}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${order.deliveryMethod}</p></div>
-        <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName)}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
-        <div class="detail-section"><h3>注文商品 (${order.taxType})</h3><div class="detail-products">${order.products.map(p => `<div class="detail-product-item"><span>${escapeHtml(p.name)}</span><span>${p.quantity}個 × ¥${p.price.toLocaleString()} = ¥${(p.quantity * p.price).toLocaleString()}</span></div>`).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${order.totalAmount.toLocaleString()}</span></div></div></div>
+        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${escapeHtml(order.receptionMethod || '未設定')}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${escapeHtml(order.deliveryMethod || '未設定')}</p></div>
+        <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName || '')}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
+        <div class="detail-section"><h3>注文商品</h3><div class="detail-products">${(order.products || []).map(p => { const q = p.quantity || 0; const pr = p.price || 0; return `<div class="detail-product-item"><span>${escapeHtml(p.name || '')}${p.taxType ? `（${escapeHtml(p.taxType)}${p.taxRate ? p.taxRate + '%' : ''}）` : ''}</span><span>${q}個 × ¥${pr.toLocaleString()} = ¥${(q * pr).toLocaleString()}</span></div>`; }).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${(order.totalAmount || 0).toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
-        <div class="detail-section"><h3>支払い・その他</h3><p>代金: ${order.paymentType || order.paymentMethod || '未選択'}</p><p>納品請求書: ${order.invoiceRequired ? '要' : '不要'}</p><p>請求先: ${escapeHtml(order.billingName || '未登録')}</p><p>部門: ${order.departments.length > 0 ? order.departments.join(', ') : '未選択'}</p></div>
+        <div class="detail-section"><h3>支払い・その他</h3><p>代金: ${escapeHtml(order.paymentType || order.paymentMethod || '未選択')}</p><p>納品請求書: ${order.invoiceRequired ? '要' : '不要'}</p><p>請求先: ${escapeHtml(order.billingName || '未登録')}</p><p>部門: ${(order.departments || []).length > 0 ? escapeHtml(order.departments.join(', ')) : '未選択'}</p></div>
     `;
     detailModal.classList.add('active');
 }
@@ -546,8 +561,6 @@ function editOrder(id) {
             alert('注文が見つかりませんでした。');
             return;
         }
-
-        console.log('編集対象の注文:', order); // デバッグ用
 
         // 編集モードに設定
         editingOrderId = id;
@@ -1201,6 +1214,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
             .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
             .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
             .product-table th { background-color: transparent; }
+            .product-table th, .product-table td:nth-child(2), .product-table td:nth-child(3), .product-table td:nth-child(4) { white-space: nowrap; }
             /* 合計 */
             .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
             .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
@@ -1216,7 +1230,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     
     <table class="paper-table" style="table-layout: fixed; width: 100%;">
         <colgroup>
-            <col style="width: 15%;">
+            <col style="width: 14.5%;">
             <col style="width: auto;">
             <col style="width: 13%;">
             <col style="width: 13%;">
@@ -1253,7 +1267,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
                     <div style="flex: 1; border-right: 1px solid #000;">
                         <table class="product-table">
                             <thead>
-                                <tr><th style="width: 50%;">商品名</th><th style="width: 10%;">個数</th><th style="width: 25%;">単価</th><th style="width: 15%;">合計金額</th></tr>
+                                <tr><th style="width: 34%;">商品名</th><th style="width: 13%;">個数</th><th style="width: 25%;">単価</th><th style="width: 28%;">合計金額</th></tr>
                             </thead>
                             <tbody>
                                 ${productsRows}
@@ -1374,6 +1388,7 @@ function generateCustomerCopyHtml(order) {
             .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
             .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
             .product-table th { background-color: transparent; }
+            .product-table th, .product-table td:nth-child(2), .product-table td:nth-child(3), .product-table td:nth-child(4) { white-space: nowrap; }
             .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
             .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
             .check-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; font-size: 12px; margin-right: 2px; }
@@ -1387,7 +1402,7 @@ function generateCustomerCopyHtml(order) {
     
     <table class="paper-table" style="table-layout: fixed; width: 100%;">
         <colgroup>
-            <col style="width: 15%;">
+            <col style="width: 14.5%;">
             <col style="width: auto;">
             <col style="width: 13%;">
             <col style="width: 13%;">
@@ -1424,7 +1439,7 @@ function generateCustomerCopyHtml(order) {
                     <div style="flex: 1; border-right: 1px solid #000;">
                         <table class="product-table">
                             <thead>
-                                <tr><th style="width: 50%;">商品名</th><th style="width: 10%;">個数</th><th style="width: 25%;">単価</th><th style="width: 15%;">合計金額</th></tr>
+                                <tr><th style="width: 34%;">商品名</th><th style="width: 13%;">個数</th><th style="width: 25%;">単価</th><th style="width: 28%;">合計金額</th></tr>
                             </thead>
                             <tbody>
                                 ${productsRows}
@@ -1585,15 +1600,19 @@ function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
+// 日付として解釈できない値は空文字を返す。
+// 印刷物に「NaN年NaN月NaN日」と出るのを防ぐため、未入力と同じ扱いにする。
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 function formatDateTime(dateTimeStr) {
     if (!dateTimeStr) return '';
     const date = new Date(dateTimeStr);
+    if (Number.isNaN(date.getTime())) return '';
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -1697,10 +1716,14 @@ function renderCustomersList() {
                 <div class="order-card-info">📍 ${escapeHtml(customer.address || '未登録')}</div>
             </div>
             <div class="order-card-actions">
-                <button class="btn btn-primary" onclick="useCustomerForOrderByName('${escapeHtml(customer.name)}')">注文に使用</button>
+                <button class="btn btn-primary use-customer-btn" data-name="${escapeHtml(customer.name || '')}">注文に使用</button>
             </div>
         </div>
     `).join('');
+
+    customersList.querySelectorAll('.use-customer-btn').forEach(btn =>
+        btn.addEventListener('click', () => useCustomerForOrderByName(btn.dataset.name))
+    );
 }
 
 function showAddCustomerModal() {

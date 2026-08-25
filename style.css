@@ -314,14 +314,17 @@ textarea {
   min-width: 80px;
 }
 
+/* セレクトはネイティブの矢印アイコンが内側に描画されるぶん、
+   文字の表示領域が20px前後狭くなる。「税抜」「10%」が矢印に
+   重なって読めなくならないよう、余裕をもった幅を確保する */
 .product-row .product-tax-type {
-  flex: 0 0 75px;
-  min-width: 75px;
+  flex: 0 0 95px;
+  min-width: 95px;
 }
 
 .product-row .product-tax-rate {
-  flex: 0 0 65px;
-  min-width: 65px;
+  flex: 0 0 95px;
+  min-width: 95px;
 }
 
 .product-row .product-subtotal {
@@ -1407,15 +1410,15 @@ textarea {
 
   /* 税込/税抜セレクト（4番目） */
   .product-row .product-tax-type {
-    flex: 1 1 70px;
-    min-width: 70px;
+    flex: 1 1 90px;
+    min-width: 90px;
     order: 4;
   }
 
   /* 税率セレクト（5番目） */
   .product-row .product-tax-rate {
-    flex: 1 1 60px;
-    min-width: 60px;
+    flex: 1 1 90px;
+    min-width: 90px;
     order: 5;
   }
 
@@ -1482,7 +1485,11 @@ textarea {
 }
 
 /* 横画面iPad向け追加調整 (高さが狭い場合) */
-@media (max-width: 1024px) and (orientation: landscape) {
+/* iPadの横向きは幅1080〜1366pxになるため1024pxでは範囲外になる。
+   ただし1366x768はノートPCにも多い解像度のため、1024pxを超える範囲は
+   pointer:coarse（指で操作する端末）に限定してPCを巻き込まないようにする */
+@media (max-width: 1024px) and (orientation: landscape),
+       (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   .form-section {
     padding: 16px;
     margin-bottom: 12px;
@@ -1504,8 +1511,11 @@ textarea {
   }
 }
 
-/* iPad向け文字サイズと体裁調整 */
-@media (min-width: 768px) and (max-width: 1024px) {
+/* iPad向け文字サイズと体裁調整
+   縦向き(768〜1024px)は従来どおり。横向き(1025〜1366px)は同じ幅の
+   ノートPCに適用されないよう、タッチ操作の端末に限定する */
+@media (min-width: 768px) and (max-width: 1024px),
+       (min-width: 1025px) and (max-width: 1366px) and (pointer: coarse) {
   html {
     font-size: 20px;
   }
@@ -1633,10 +1643,11 @@ textarea {
     min-width: 80px;
   }
 
+  /* iPadは文字が20px基準になるため、さらに広めに確保する */
   .product-row .product-tax-type,
   .product-row .product-tax-rate {
-    flex: 0 0 70px;
-    min-width: 70px;
+    flex: 0 0 110px;
+    min-width: 110px;
   }
 
   .product-row .product-subtotal {
