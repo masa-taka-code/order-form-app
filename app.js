@@ -1465,7 +1465,7 @@ function generateCustomerCopyHtml(order) {
     <div class="store-info">
         <div>${escapeHtml(settings.storeName)}</div>
         <div>${escapeHtml(settings.storePhone)}</div>
-        ${settings.instagramQrImage ? `<img src="${settings.instagramQrImage}" alt="Instagram QRコード" style="width:36mm; height:36mm; margin:2mm -3mm 0 auto; padding:3mm; background:#fff; display:block; box-sizing:content-box; image-rendering:pixelated;">` : ''}
+        ${settings.instagramQrImage ? `<img src="${settings.instagramQrImage}" alt="Instagram QRコード" style="width:47.52mm; height:47.52mm; margin:2mm 0 0 auto; background:#fff; display:block; box-sizing:content-box; image-rendering:pixelated;">` : ''}
     </div>
 </div>
     `;
