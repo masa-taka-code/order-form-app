@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const APP_UPDATED = '2026-11-25';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -710,8 +710,8 @@ function renderSummaryList() {
         const [y, m, d] = date.split('-').map(Number);
         const wd = weekdays[new Date(y, m - 1, d).getDay()];
         let tag = '';
-        if (date === todayStr) tag = ' <span class="summary-day-tag">今日</span>';
-        else if (date === tomorrowStr) tag = ' <span class="summary-day-tag">明日</span>';
+        if (date === todayStr) tag = ' <span class="summary-day-tag is-today">今日</span>';
+        else if (date === tomorrowStr) tag = ' <span class="summary-day-tag is-tomorrow">明日</span>';
         return `<div class="summary-group-header">${m}/${d}(${wd})${tag} ・ ${countText(items, x => x.o)}</div>`;
     };
 
