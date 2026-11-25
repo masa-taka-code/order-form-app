@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const APP_UPDATED = '2026-11-25';
 
 const STORAGE_KEY = 'orderFormAppData';
@@ -580,40 +580,133 @@ function renderOrdersList() {
     ordersList.querySelectorAll('.order-card').forEach(card => card.addEventListener('click', () => showOrderDetail(card.dataset.id)));
 }
 
-// サマリーリスト（注文日、名前、商品名のみ表示）
+// 注文一覧（受け取り予定表）: 受け取り日ごとにグループ化して表示（表示のみ・保存データは変更しない）
 function renderSummaryList() {
     const search = summarySearchInput?.value?.toLowerCase() || '';
-    let orders = getOrders();
+    let orders = getOrders().slice();
 
     if (search) {
         orders = orders.filter(o => o.customerName?.toLowerCase().includes(search));
     }
-
-    // 日付の新しい順にソート
-    orders.sort((a, b) => new Date(b.receptionDate) - new Date(a.receptionDate));
 
     if (orders.length === 0) {
         summaryList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
         return;
     }
 
-    summaryList.innerHTML = orders.map(order => {
-        const date = formatDate(order.receptionDate);
-        const name = order.customerName || '（名前なし）';
-        const products = order.products?.map(p => p.name).join(', ') || '（商品なし）';
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+    const tomorrowStr = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+    const nowKey = `${todayStr}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const dtRe = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
 
+    const parsePickup = (o) => {
+        const m = typeof o.orderDatetime === 'string' ? o.orderDatetime.match(dtRe) : null;
+        if (!m) return null;
+        const y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5];
+        const dt = new Date(y, mo - 1, d, h, mi);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d || h > 23 || mi > 59) return null;
+        return { date: `${m[1]}-${m[2]}-${m[3]}`, key: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`, y, mo, d, h, mi: m[5] };
+    };
+
+    const dated = [];
+    const unset = [];
+    orders.forEach(o => {
+        const p = parsePickup(o);
+        if (p) dated.push({ o, p }); else unset.push(o);
+    });
+
+    const byTime = (a, b) => a.p.key.localeCompare(b.p.key);
+    const upcoming = dated.filter(x => x.p.date >= todayStr).sort(byTime);
+    const past = dated.filter(x => x.p.date < todayStr).sort(byTime);
+
+    const groupByDate = (list, desc) => {
+        const map = new Map();
+        list.forEach(x => {
+            if (!map.has(x.p.date)) map.set(x.p.date, []);
+            map.get(x.p.date).push(x);
+        });
+        const dates = Array.from(map.keys()).sort();
+        if (desc) dates.reverse();
+        return dates.map(date => ({ date, items: map.get(date) }));
+    };
+
+    const isDone = (o) => o.status === '処理済み';
+    const countText = (items, getOrder) => {
+        const u = items.filter(x => !isDone(getOrder(x))).length;
+        return `${items.length}件${u > 0 ? `（未処理 ${u}）` : ''}`;
+    };
+
+    const renderRow = (o, p) => {
+        const done = isDone(o);
+        const time = p ? `${p.h}:${p.mi}` : '--';
+        const overdue = p && !done && p.date === todayStr && p.key < nowKey;
+        const name = o.customerName || '（名前なし）';
+        const prods = Array.isArray(o.products) ? o.products.filter(Boolean) : [];
+        let prodText = '（商品なし）';
+        if (prods.length > 0) {
+            const f = prods[0];
+            const hasQty = f.quantity !== undefined && f.quantity !== null && f.quantity !== '';
+            prodText = `${f.name || ''}${hasQty ? ` ×${f.quantity}` : ''}`;
+            if (prods.length > 1) prodText += ` ほか${prods.length - 1}点`;
+        }
+        const noteMark = (typeof o.notes === 'string' ? o.notes.trim() : o.notes) ? ' <span title="備考あり">⚠️</span>' : '';
+        let method = '';
+        if (o.deliveryMethod === '店頭') method = '<span title="店頭受け取り" aria-label="店頭受け取り">🏪</span>';
+        else if (o.deliveryMethod === '配達') method = '<span title="配達" aria-label="配達">🚚</span>';
+        const pill = done
+            ? '<span class="summary-pill done">✓処理済み</span>'
+            : '<span class="summary-pill pending">未処理</span>';
+        const printIcon = o.isPrinted
+            ? '<span title="印刷済み">🖨️</span>'
+            : '<span title="未印刷">📄</span>';
         return `
-            <div class="summary-item" data-id="${escapeHtml(String(order.id))}">
-                <span class="summary-item-date">${date}</span>
-                <span class="summary-item-name">${escapeHtml(name)}</span>
-                <span class="summary-item-products">${escapeHtml(products)}</span>
-            </div>
-        `;
-    }).join('');
+            <div class="summary-row ${done ? 'is-done' : ''}" data-id="${escapeHtml(String(o.id))}">
+                <div class="summary-time">${time}</div>
+                <div class="summary-name">${escapeHtml(name)}</div>
+                <div class="summary-products">${escapeHtml(prodText)}${noteMark}</div>
+                <div class="summary-method">${method}</div>
+                <div class="summary-status">${overdue ? '<span class="summary-overdue">過ぎています</span>' : pill}${printIcon}</div>
+            </div>`;
+    };
+
+    const dateHeader = (date, items) => {
+        const [y, m, d] = date.split('-').map(Number);
+        const wd = weekdays[new Date(y, m - 1, d).getDay()];
+        let tag = '';
+        if (date === todayStr) tag = ' <span class="summary-day-tag">今日</span>';
+        else if (date === tomorrowStr) tag = ' <span class="summary-day-tag">明日</span>';
+        return `<div class="summary-group-header">${m}/${d}(${wd})${tag} ・ ${countText(items, x => x.o)}</div>`;
+    };
+
+    const renderDateGroup = (g) => dateHeader(g.date, g.items) + g.items.map(x => renderRow(x.o, x.p)).join('');
+
+    let html = groupByDate(upcoming, false).map(renderDateGroup).join('');
+
+    if (unset.length > 0) {
+        unset.sort((a, b) => {
+            const ca = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+            const cb = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
+            if (!isNaN(ca) && !isNaN(cb) && ca !== cb) return cb - ca;
+            if (!isNaN(ca) !== !isNaN(cb)) return isNaN(ca) ? 1 : -1;
+            return String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+        });
+        html += `<div class="summary-group-header">受け取り日時 未設定 ・ ${countText(unset, x => x)}</div>`
+            + unset.map(o => renderRow(o, null)).join('');
+    }
+
+    if (past.length > 0) {
+        html += `<details class="summary-past"><summary>過去の注文（${past.length}件）</summary>`
+            + groupByDate(past, true).map(renderDateGroup).join('')
+            + `</details>`;
+    }
+
+    summaryList.innerHTML = html;
 
     // クリックで詳細表示
-    summaryList.querySelectorAll('.summary-item').forEach(item => {
-        item.addEventListener('click', () => showOrderDetail(item.dataset.id));
+    summaryList.querySelectorAll('.summary-row').forEach(row => {
+        row.addEventListener('click', () => showOrderDetail(row.dataset.id));
     });
 }
 
