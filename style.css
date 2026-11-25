@@ -1858,3 +1858,14 @@ body.modal-open { overflow: hidden; }
     overflow: visible !important;
   }
 }
+
+/* 設定画面の一番下のバージョン表示 */
+.app-version {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+@media print {
+  .app-version { display: none; }
+}

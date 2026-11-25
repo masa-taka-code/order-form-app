@@ -1,4 +1,10 @@
 // ===== Order Form App =====
+
+// アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
+// 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
+const APP_VERSION = '1.1.0';
+const APP_UPDATED = '2026-11-25';
+
 const STORAGE_KEY = 'orderFormAppData';
 
 // localStorageへの保存。容量超過などで失敗した場合は、
@@ -1610,6 +1616,12 @@ function loadSettingsForm() {
 }
 loadSettingsForm();
 
+// 設定画面の一番下にバージョンを表示（iPadで最新版が読み込まれているかの確認にも使う）
+(() => {
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）`;
+})();
+
 settingInstagramQrInput.addEventListener('change', () => {
     const file = settingInstagramQrInput.files[0];
     if (!file) return;
@@ -1652,6 +1664,7 @@ exportBtn.addEventListener('click', () => {
     const backup = {
         app: 'order-form-app',
         version: 2,
+        appVersion: APP_VERSION,
         exportedAt: new Date().toISOString(),
         orders: getOrders(),
         settings: settings,
