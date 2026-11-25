@@ -1869,3 +1869,25 @@ body.modal-open { overflow: hidden; }
 @media print {
   .app-version { display: none; }
 }
+
+/* ===== 詳細カード（v1.2） ===== */
+.order-card-header { gap: 8px; }
+.order-card-header-main { flex: 1 1 auto; min-width: 0; }
+.order-card-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 0 0 auto; }
+.order-card-pickup { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; overflow-wrap: anywhere; }
+.order-card-pickup-unset { font-size: 0.95rem; font-weight: 400; color: var(--secondary-color); }
+/* 「受け取り」は日時より小さく、改行されても単語の途中で切れないようにする */
+.order-card-pickup-label { font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+.order-card-nameline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.order-card-nameline .order-card-title { overflow-wrap: anywhere; min-width: 0; }
+.order-card-phone { font-weight: 400; color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap; }
+.order-card-due { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.order-card-due.due-today { background: var(--danger-color); color: #fff; }
+.order-card-due.due-tomorrow { background: rgba(79, 70, 229, 0.12); color: var(--primary-color); border: 2px solid var(--primary-color); padding: 4px 12px; }
+.order-card-due.due-overdue { background: #374151; color: #fff; }
+.order-card-products, .order-card-depts, .order-card-info, .order-card-notes { min-width: 0; overflow-wrap: anywhere; }
+.order-card-products { font-size: 1rem; font-weight: 600; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.order-card-depts { font-size: 0.9rem; color: var(--text-secondary); }
+.order-card-notes { font-size: 0.9rem; background: #FEF3C7; border-radius: var(--radius-sm); padding: 6px 10px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.order-card-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; color: var(--text-secondary); align-items: baseline; margin-top: 8px; }
+.order-card-meta .order-card-amount { font-size: 1rem; }

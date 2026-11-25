@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const APP_UPDATED = '2026-11-25';
 
 const STORAGE_KEY = 'orderFormAppData';
@@ -497,28 +497,78 @@ function renderOrdersList() {
         return;
     }
 
-    ordersList.innerHTML = filtered.map(order => `
-        <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${escapeHtml(String(order.id))}">
+    const nowForCards = new Date();
+    const todayStr = getLocalDateString(nowForCards);
+    const tomorrowDate = new Date(nowForCards);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = getLocalDateString(tomorrowDate);
+
+    ordersList.innerHTML = filtered.map(order => {
+        const processed = order.status === '処理済み';
+        const idAttr = escapeHtml(String(order.id));
+        const pickup = order.orderDatetime ? new Date(order.orderDatetime) : null;
+        const pickupValid = !!pickup && !isNaN(pickup.getTime());
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+        const pickupLine = pickupValid
+            ? `<div class="order-card-pickup">📅 ${pickup.getMonth() + 1}/${pickup.getDate()}(${weekdays[pickup.getDay()]}) ${pickup.getHours()}:${String(pickup.getMinutes()).padStart(2, '0')} <span class="order-card-pickup-label">受け取り</span></div>`
+            : `<div class="order-card-pickup order-card-pickup-unset">📅 受け取り日時 未設定</div>`;
+
+        let dueBadge = '';
+        if (!processed && pickupValid) {
+            const pickupDateStr = getLocalDateString(pickup);
+            if (pickup < nowForCards) dueBadge = '<span class="order-card-due due-overdue">過ぎています</span>';
+            else if (pickupDateStr === todayStr) dueBadge = '<span class="order-card-due due-today">今日</span>';
+            else if (pickupDateStr === tomorrowStr) dueBadge = '<span class="order-card-due due-tomorrow">明日</span>';
+        }
+
+        const products = Array.isArray(order.products) ? order.products.filter(p => p && p.name) : [];
+        const productsText = products.length
+            ? products.map(p => `${escapeHtml(p.name)}${p.quantity ? ` ×${escapeHtml(String(p.quantity))}` : ''}`).join('、')
+            : '（商品なし）';
+        const depts = Array.isArray(order.departments) ? order.departments.filter(Boolean) : [];
+        let deliveryLine = '';
+        if (order.deliveryMethod === '配達') deliveryLine = `🚚 配達：${escapeHtml(order.deliveryAddress || '住所未登録')}`;
+        else if (order.deliveryMethod === '店頭') deliveryLine = '🏪 店頭受け取り';
+        const notes = String(order.notes || '').replace(/[\r\n]+/g, ' ').trim();
+        const payment = order.paymentType || order.paymentMethod;
+        let receptionShort = '未設定';
+        const rm = /^(\d{4})-(\d{2})-(\d{2})/.exec(order.receptionDate || '');
+        if (rm) receptionShort = `${Number(rm[2])}/${Number(rm[3])}`;
+
+        return `
+        <div class="order-card ${processed ? 'processed' : ''}" data-id="${idAttr}">
             <div class="order-card-header">
-                <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">受付日：${formatDate(order.receptionDate) || '未設定'}</div></div>
-                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status === '処理済み' ? '✓ 処理済み' : escapeHtml(order.status)}</span>
+                <div class="order-card-header-main">
+                    ${pickupLine}
+                    <div class="order-card-nameline"><div class="order-card-title">${escapeHtml(order.customerName)}</div>${order.phoneNumber ? `<span class="order-card-phone">📞 ${escapeHtml(order.phoneNumber)}</span>` : ''}</div>
+                </div>
+                <div class="order-card-badges">
+                    ${dueBadge}
+                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? '✓ 処理済み' : escapeHtml(order.status)}</span>
+                </div>
             </div>
             <div class="order-card-body">
-                <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
-                ${order.status === '処理済み' ? `<div class="order-card-info order-card-processed-at">✅ 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
-                <div class="order-card-info">📞 ${escapeHtml(order.phoneNumber || '未登録')}</div>
-                <div class="order-card-info">🚚 ${escapeHtml(order.deliveryMethod || '未設定')}</div>
-                <div class="order-card-amount">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div>
+                <div class="order-card-products">🍱 ${productsText}</div>
+                ${depts.length ? `<div class="order-card-depts">🏷 ${escapeHtml(depts.join('・'))}</div>` : ''}
+                ${deliveryLine ? `<div class="order-card-info">${deliveryLine}</div>` : ''}
+                ${notes ? `<div class="order-card-notes">⚠️ ${escapeHtml(notes)}</div>` : ''}
+                ${processed ? `<div class="order-card-info order-card-processed-at">✅ 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
+            </div>
+            <div class="order-card-meta">
+                <span class="order-card-amount">合計 ¥${(order.totalAmount || 0).toLocaleString()}${payment ? `（${escapeHtml(payment)}）` : ''}</span>
+                <span>${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</span>
+                <span>受付日 ${receptionShort}</span>
             </div>
             <div class="order-card-actions">
-                <button class="btn btn-secondary view-btn" data-id="${escapeHtml(String(order.id))}">詳細</button>
-                <button class="btn btn-secondary edit-btn" data-id="${escapeHtml(String(order.id))}">編集</button>
-                <button class="btn btn-secondary print-preview-btn" data-id="${escapeHtml(String(order.id))}">印刷</button>
-                <button class="btn btn-primary toggle-status-btn" data-id="${escapeHtml(String(order.id))}">${order.status === '処理済み' ? '未処理に戻す' : '処理済みにする'}</button>
-                <button class="btn btn-danger delete-btn" data-id="${escapeHtml(String(order.id))}">削除</button>
+                <button class="btn btn-secondary view-btn" data-id="${idAttr}">詳細</button>
+                <button class="btn btn-secondary edit-btn" data-id="${idAttr}">編集</button>
+                <button class="btn btn-secondary print-preview-btn" data-id="${idAttr}">印刷</button>
+                <button class="btn btn-primary toggle-status-btn" data-id="${idAttr}">${processed ? '未処理に戻す' : '処理済みにする'}</button>
+                <button class="btn btn-danger delete-btn" data-id="${idAttr}">削除</button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     ordersList.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showOrderDetail(btn.dataset.id); }));
     ordersList.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); editOrder(btn.dataset.id); }));
