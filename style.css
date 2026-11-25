@@ -559,7 +559,13 @@ textarea {
 
 .order-card.processed {
   border-left-color: var(--success-color);
-  opacity: 0.8;
+  border-left-width: 6px;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.order-card-processed-at {
+  color: var(--success-color);
+  font-weight: 600;
 }
 
 .order-card-header {
@@ -598,20 +604,21 @@ textarea {
 
 .order-card-status {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .order-card-status.pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--warning-color);
+  background: var(--warning-color);
+  color: #fff;
 }
 
 .order-card-status.completed {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--success-color);
+  background: var(--success-color);
+  color: #fff;
 }
 
 .order-card-actions {

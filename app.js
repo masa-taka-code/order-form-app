@@ -448,10 +448,11 @@ function renderOrdersList() {
         <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${escapeHtml(String(order.id))}">
             <div class="order-card-header">
                 <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">${formatDate(order.receptionDate)}</div></div>
-                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${escapeHtml(order.status)}</span>
+                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status === '処理済み' ? '✓ 処理済み' : escapeHtml(order.status)}</span>
             </div>
             <div class="order-card-body">
                 <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
+                ${order.status === '処理済み' ? `<div class="order-card-info order-card-processed-at">✅ 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
                 <div class="order-card-info">📞 ${escapeHtml(order.phoneNumber || '未登録')}</div>
                 <div class="order-card-info">🚚 ${escapeHtml(order.deliveryMethod || '未設定')}</div>
                 <div class="order-card-amount">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div>
@@ -563,7 +564,12 @@ function toggleOrderStatus(id) {
     const orders = getOrders();
     const order = orders.find(o => o.id === id);
     if (order) {
-        updateOrder(id, { status: order.status === '処理済み' ? '未処理' : '処理済み' });
+        if (order.status === '処理済み') {
+            if (!confirm('「未処理」に戻しますか？\n記録されている処理日時は消えます。')) return;
+            updateOrder(id, { status: '未処理', processedAt: null });
+        } else {
+            updateOrder(id, { status: '処理済み', processedAt: new Date().toISOString() });
+        }
         renderOrdersList();
     }
 }
@@ -586,7 +592,7 @@ function showOrderDetail(id) {
     if (!order) return;
     currentOrderId = id;
     detailContent.innerHTML = `
-        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${escapeHtml(order.receptionMethod || '未設定')}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${escapeHtml(order.deliveryMethod || '未設定')}</p></div>
+        <div class="detail-section"><h3>受付情報</h3><p>状態: ${escapeHtml(order.status || '未処理')}</p>${order.status === '処理済み' ? `<p>処理日時: ${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</p>` : ''}<p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${escapeHtml(order.receptionMethod || '未設定')}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${escapeHtml(order.deliveryMethod || '未設定')}</p></div>
         <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName || '')}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
         <div class="detail-section"><h3>注文商品</h3><div class="detail-products">${(order.products || []).map(p => { const q = p.quantity || 0; const pr = p.price || 0; return `<div class="detail-product-item"><span>${escapeHtml(p.name || '')}${p.taxType ? `（${escapeHtml(p.taxType)}${p.taxRate ? p.taxRate + '%' : ''}）` : ''}</span><span>${q}個 × ¥${pr.toLocaleString()} = ¥${(q * pr).toLocaleString()}</span></div>`; }).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${(order.totalAmount || 0).toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
