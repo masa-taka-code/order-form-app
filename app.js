@@ -355,6 +355,20 @@ editBanner.appendChild(editBannerCancelBtn);
 orderForm.parentNode.insertBefore(editBanner, orderForm);
 editBannerCancelBtn.addEventListener('click', () => cancelEditMode());
 
+// 編集中バナーを上部のタブ（sticky）の真下に固定するため、タブの下端位置をCSS変数に反映する
+// （タブの高さは画面幅で変わるため、実測して追従させる）
+(() => {
+    const nav = document.querySelector('.nav-tabs');
+    if (!nav) return;
+    const update = () => {
+        const top = parseFloat(getComputedStyle(nav).top) || 0;
+        document.documentElement.style.setProperty('--nav-sticky-bottom', `${top + nav.offsetHeight + 8}px`);
+    };
+    update();
+    if (window.ResizeObserver) new ResizeObserver(update).observe(nav);
+    window.addEventListener('resize', update);
+})();
+
 function showEditBanner(customerName) {
     editBannerText.textContent = `✏️ 編集中：${customerName || ''} の注文`;
     editBanner.hidden = false;

@@ -1803,5 +1803,11 @@ textarea {
     border: 1px solid #e6c84c;
     border-radius: 8px;
     font-weight: bold;
+    /* スクロールしても上部のタブのすぐ下に表示し続ける（タブの高さはJSで --nav-sticky-bottom に設定） */
+    position: sticky;
+    top: var(--nav-sticky-bottom, 0px);
+    z-index: 99;
+    box-shadow: var(--shadow);
 }
 .edit-banner[hidden] { display: none; }
+.edit-banner-btn { white-space: nowrap; flex-shrink: 0; }
