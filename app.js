@@ -108,21 +108,34 @@ const printContent = document.getElementById('print-content');
 const detailContent = document.getElementById('detail-content');
 const customerNameInput = document.getElementById('customer-name');
 
+// タブごとのスクロール位置（タブ切替時に記憶・復元する。保存データには影響しない）
+const tabScrollPositions = {};
+
+// タブ切替の共通処理
+// scroll: 'restore' = そのタブで最後に見ていた位置へ / 'top' = 先頭へ
+function switchTab(tabName, { scroll = 'restore' } = {}) {
+    // 切替前のタブのスクロール位置を記憶
+    const currentContent = Array.from(tabContents).find(c => c.classList.contains('active'));
+    if (currentContent) tabScrollPositions[currentContent.id.replace(/-tab$/, '')] = window.scrollY;
+
+    navTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+    tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabName}-tab`));
+    if (tabName === 'list') renderOrdersList();
+    if (tabName === 'summary') renderSummaryList();
+    if (tabName === 'customers') renderCustomersList();
+
+    // 描画後にレイアウトが確定してからスクロールする
+    const y = scroll === 'top' ? 0 : (tabScrollPositions[tabName] || 0);
+    requestAnimationFrame(() => window.scrollTo(0, y));
+}
+
 // Tab switching
 navTabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const tabName = tab.dataset.tab;
         // 編集中に入力タブ以外へ移動した場合は編集をやめる（未保存の編集内容は破棄）
         if (editingOrderId && tabName !== 'input') cancelEditMode();
-        navTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        tabContents.forEach(content => {
-            content.classList.remove('active');
-            if (content.id === `${tabName}-tab`) content.classList.add('active');
-        });
-        if (tabName === 'list') renderOrdersList();
-        if (tabName === 'summary') renderSummaryList();
-        if (tabName === 'customers') renderCustomersList();
+        switchTab(tabName);
     });
 });
 
@@ -357,26 +370,38 @@ editBannerCancelBtn.addEventListener('click', () => cancelEditMode());
 
 // 編集中バナーを上部のタブ（sticky）の真下に固定するため、タブの下端位置をCSS変数に反映する
 // （タブの高さは画面幅で変わるため、実測して追従させる）
+let updateStickyOffsets = () => {};
 (() => {
     const nav = document.querySelector('.nav-tabs');
     if (!nav) return;
     const update = () => {
         const top = parseFloat(getComputedStyle(nav).top) || 0;
-        document.documentElement.style.setProperty('--nav-sticky-bottom', `${top + nav.offsetHeight + 8}px`);
+        const navBottom = top + nav.offsetHeight;
+        document.documentElement.style.setProperty('--nav-sticky-bottom', `${navBottom + 8}px`);
+        // フォーカス／検証エラーの項目が固定ヘッダー（タブ＋編集バナー）に隠れないよう余白を確保
+        const bannerH = editBanner.hidden ? 0 : editBanner.offsetHeight + 8;
+        document.documentElement.style.scrollPaddingTop = `${navBottom + bannerH + 8}px`;
     };
+    updateStickyOffsets = update;
     update();
-    if (window.ResizeObserver) new ResizeObserver(update).observe(nav);
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(update);
+        ro.observe(nav);
+        ro.observe(editBanner);
+    }
     window.addEventListener('resize', update);
 })();
 
 function showEditBanner(customerName) {
     editBannerText.textContent = `✏️ 編集中：${customerName || ''} の注文`;
     editBanner.hidden = false;
+    updateStickyOffsets();
 }
 
 function hideEditBanner() {
     editBanner.hidden = true;
     editBannerText.textContent = '';
+    updateStickyOffsets();
 }
 
 // 編集モードを解除してフォームを新規入力の状態に戻す
@@ -390,8 +415,22 @@ function cancelEditMode() {
 orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = getFormData();
-    if (!data.customerName) { alert('お客様氏名を入力してください'); return; }
-    if (data.products.length === 0 || !data.products.some(p => p.name)) { alert('商品を1つ以上入力してください'); return; }
+    if (!data.customerName) {
+        alert('お客様氏名を入力してください');
+        customerNameInput.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        customerNameInput.focus({ preventScroll: true });
+        return;
+    }
+    if (data.products.length === 0 || !data.products.some(p => p.name)) {
+        alert('商品を1つ以上入力してください');
+        // 最初の商品名欄へスクロールしてフォーカス
+        const el = productsContainer.querySelector('.product-name');
+        if (el) {
+            el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            el.focus({ preventScroll: true });
+        }
+        return;
+    }
 
     if (editingOrderId) {
         // 編集モード：既存の注文を更新
@@ -420,6 +459,14 @@ orderForm.addEventListener('submit', (e) => {
     }
     orderForm.reset();
     initForm();
+    // 保存後は画面の先頭へ戻す
+    window.scrollTo(0, 0);
+});
+
+// ブラウザ標準の検証（required）で止まった場合も、固定ヘッダーに隠れない位置へスクロール
+customerNameInput.addEventListener('invalid', (e) => {
+    const el = e.target;
+    Promise.resolve().then(() => el.scrollIntoView({ block: 'start' }));
 });
 
 clearFormBtn.addEventListener('click', () => {
@@ -447,7 +494,7 @@ function renderOrdersList() {
     ordersList.innerHTML = filtered.map(order => `
         <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${escapeHtml(String(order.id))}">
             <div class="order-card-header">
-                <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">${formatDate(order.receptionDate)}</div></div>
+                <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">受付日：${formatDate(order.receptionDate) || '未設定'}</div></div>
                 <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status === '処理済み' ? '✓ 処理済み' : escapeHtml(order.status)}</span>
             </div>
             <div class="order-card-body">
@@ -618,10 +665,7 @@ function editOrder(id) {
         editingOrderId = id;
 
         // 入力タブに切り替え
-        navTabs.forEach(t => t.classList.remove('active'));
-        document.querySelector('[data-tab="input"]').classList.add('active');
-        tabContents.forEach(c => c.classList.remove('active'));
-        document.getElementById('input-tab').classList.add('active');
+        switchTab('input', { scroll: 'top' });
 
         // 前回の入力値が残らないよう、フォームを初期状態に戻してから読み込む
         orderForm.reset();
@@ -1530,11 +1574,7 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
 backToListBtn.addEventListener('click', () => {
     printModal.classList.remove('active');
     // 一覧タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="list"]').classList.add('active');
-    tabContents.forEach(c => c.classList.remove('active'));
-    document.getElementById('list-tab').classList.add('active');
-    renderOrdersList();
+    switchTab('list');
 });
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
@@ -1806,10 +1846,7 @@ function useCustomerForOrderByName(name) {
     if (editingOrderId) cancelEditMode();
 
     // 新規入力タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="input"]').classList.add('active');
-    tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById('input-tab').classList.add('active');
+    switchTab('input', { scroll: 'top' });
 
     // お客様情報をフォームに入力
     const customerNameInput = document.getElementById('customer-name');
@@ -1822,3 +1859,52 @@ function useCustomerForOrderByName(name) {
 
     alert('お客様情報を注文フォームに入力しました。');
 }
+
+// ===== モーダル表示中は背景のスクロールを固定（iOS Safari対策で position:fixed 方式） =====
+(() => {
+    const modals = document.querySelectorAll('.modal');
+    let locked = false;
+    let lockedY = 0;
+    const sync = () => {
+        const anyOpen = Array.from(modals).some(m => m.classList.contains('active'));
+        if (anyOpen === locked) return;
+        const b = document.body;
+        if (anyOpen) {
+            lockedY = window.scrollY;
+            b.classList.add('modal-open');
+            b.style.position = 'fixed';
+            b.style.top = `-${lockedY}px`;
+            b.style.left = '0';
+            b.style.right = '0';
+            b.style.width = '100%';
+        } else {
+            b.classList.remove('modal-open');
+            b.style.position = '';
+            b.style.top = '';
+            b.style.left = '';
+            b.style.right = '';
+            b.style.width = '';
+            window.scrollTo(0, lockedY);
+        }
+        locked = anyOpen;
+        updateToTop();
+    };
+    const observer = new MutationObserver(sync);
+    modals.forEach(m => observer.observe(m, { attributes: true, attributeFilter: ['class'] }));
+
+    // ===== 「▲ 上へ」ボタン（一定量スクロールしたときだけ表示） =====
+    const toTopBtn = document.createElement('button');
+    toTopBtn.type = 'button';
+    toTopBtn.className = 'scroll-top-btn';
+    toTopBtn.hidden = true;
+    toTopBtn.setAttribute('aria-label', 'ページの上へ戻る');
+    toTopBtn.textContent = '▲ 上へ';
+    document.body.appendChild(toTopBtn);
+    toTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    function updateToTop() {
+        // モーダル表示中は隠す（固定中は scrollY が 0 になるため判定もここで）
+        toTopBtn.hidden = locked || window.scrollY <= 600;
+    }
+    window.addEventListener('scroll', updateToTop, { passive: true });
+    updateToTop();
+})();
