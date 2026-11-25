@@ -3,7 +3,7 @@
   --primary-color: #2E6B45;
   --primary-hover: #255A39;
   --primary-soft: #E3EFE6;
-  --secondary-color: #5B6B60;
+  --secondary-color: #3F4B43;
   --success-color: #2E6B45;
   --done-bg: #DCEBDF;
   --done-text: #23543A;
@@ -13,8 +13,8 @@
   --bg-color: #F6F8F5;
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #E4EAE3;
-  --text-primary: #1E2A22;
-  --text-secondary: #4A5A50;
+  --text-primary: #0F1712;
+  --text-secondary: #2C3830;
   --border-color: #CFD9CF;
   --focus-ring: 0 0 0 3px rgba(46, 107, 69, 0.28);
   --shadow: 0 1px 3px rgba(30, 42, 34, 0.08), 0 1px 2px rgba(30, 42, 34, 0.04);
@@ -1898,7 +1898,7 @@ body.modal-open { overflow: hidden; }
 .summary-day-tag { display: inline-block; margin-left: 2px; padding: 1px 8px; border-radius: 999px; background: var(--primary-color); color: #fff; font-size: 0.85rem; font-weight: 700; }
 .summary-row { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 1.4fr) 2em 8.5em; /* 状態欄は固定幅にして行ごとに列がずれないようにする */ gap: 8px 12px; align-items: center; padding: 12px; min-height: 48px; border-bottom: 1px solid var(--bg-tertiary); cursor: pointer; }
 .summary-row:hover, .summary-row:active { background: var(--bg-secondary); }
-.summary-row.is-done { opacity: 0.55; }
+.summary-row.is-done { opacity: 0.7; /* 処理済みは薄くするが、文字は読める濃さを保つ */ }
 .summary-time { font-weight: 700; font-variant-numeric: tabular-nums; }
 .summary-time, .summary-name, .summary-products, .summary-method { min-width: 0; }
 .summary-name, .summary-products { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
