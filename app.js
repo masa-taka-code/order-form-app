@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const APP_UPDATED = '2026-11-25';
 
 const STORAGE_KEY = 'orderFormAppData';
@@ -563,6 +563,7 @@ function renderOrdersList() {
                 <button class="btn btn-secondary view-btn" data-id="${idAttr}">詳細</button>
                 <button class="btn btn-secondary edit-btn" data-id="${idAttr}">編集</button>
                 <button class="btn btn-secondary print-preview-btn" data-id="${idAttr}">印刷</button>
+                <button class="btn btn-secondary toggle-print-btn" data-id="${idAttr}">${order.isPrinted ? '未印刷に戻す' : '印刷済みにする'}</button>
                 <button class="btn btn-primary toggle-status-btn" data-id="${idAttr}">${processed ? '未処理に戻す' : '処理済みにする'}</button>
                 <button class="btn btn-danger delete-btn" data-id="${idAttr}">削除</button>
             </div>
@@ -573,6 +574,7 @@ function renderOrdersList() {
     ordersList.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showOrderDetail(btn.dataset.id); }));
     ordersList.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); editOrder(btn.dataset.id); }));
     ordersList.querySelectorAll('.print-preview-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showPrintPreview(btn.dataset.id); }));
+    ordersList.querySelectorAll('.toggle-print-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleOrderPrinted(btn.dataset.id); }));
     ordersList.querySelectorAll('.toggle-status-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleOrderStatus(btn.dataset.id); }));
     ordersList.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); handleDeleteOrder(btn.dataset.id); }));
     ordersList.querySelectorAll('.order-card').forEach(card => card.addEventListener('click', () => showOrderDetail(card.dataset.id)));
@@ -675,6 +677,15 @@ function toggleOrderStatus(id) {
         }
         renderOrdersList();
     }
+}
+
+function toggleOrderPrinted(id) {
+    const order = getOrders().find(o => o.id === id);
+    if (!order) return;
+    const y = window.scrollY;
+    updateOrder(id, { isPrinted: !order.isPrinted });
+    renderOrdersList();
+    window.scrollTo(0, y);
 }
 
 function handleDeleteOrder(id) {
