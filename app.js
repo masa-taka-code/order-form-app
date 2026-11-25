@@ -838,20 +838,29 @@ function showPrintPreview(id) {
 }
 
 // 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
-function executePrintForOrder(order) {
+// iPad Safari対策：新規ウィンドウを使わず、現在のページ内の #print-area を印刷する。
+// window.print() はクリック操作と同じ呼び出しスタック内で同期的に呼ぶ。
+// onAfterPrint: 印刷ダイアログ終了後（afterprint）に呼ばれるコールバック（任意）
+function executePrintForOrder(order, onAfterPrint) {
     const customerCopyHtml = generateCustomerCopyHtml(order);
     const storeCopyHtml = generatePrintHtmlForPaper(order);
     const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
 
-    // 印刷専用HTML+CSS（3ページ：お客様控え→店舗控え→部門控え）
-    const fullHtml = `
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注文書印刷</title>
-    <style>
+    // 既存の印刷領域があれば削除
+    const oldArea = document.getElementById('print-area');
+    if (oldArea) oldArea.remove();
+
+    // 印刷専用CSS（画面表示に影響しないよう全て @media print 内に限定）
+    const printCss = `
+        /* 画面上では印刷領域を非表示 */
+        #print-area { display: none; }
+
+        @media print {
+            /* 印刷領域以外を非表示 */
+            body > *:not(#print-area) { display: none !important; }
+            #print-area { display: block !important; }
+
+
         /* === リセット === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -1039,9 +1048,35 @@ function executePrintForOrder(order) {
                 box-shadow: 0 0 20px rgba(0,0,0,0.3);
             }
         }
-    </style>
-</head>
-<body>
+
+        }
+    `;
+
+    // 印刷時の最終オーバーライド。各控えのHTML内の <style>（@page margin:0 など）より
+    // 後ろに置かないと負けるため、必ず本文の後に挿入する
+    const printOverrideCss = `
+        @media print {
+            .paper {
+                min-height: auto !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+            /* style.css の .total-details { padding: 5px } が混入しないよう打ち消す */
+            #print-area .total-details {
+                padding: 0;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+        }
+    `;
+
+    // 印刷領域を作成（3ページ：お客様控え→店舗控え→部門控え）
+    const printArea = document.createElement('div');
+    printArea.id = 'print-area';
+    printArea.innerHTML = `<style>${printCss}</style>
     <!-- 1ページ目：お客様控え -->
     <div class="page-break">
         ${customerCopyHtml}
@@ -1054,37 +1089,20 @@ function executePrintForOrder(order) {
     <div>
         ${departmentCopyHtml}
     </div>
-    <!-- 印刷時の最終オーバーライド（後続の重複スタイルに確実に勝つ） -->
-    <style>
-        @media print {
-            .paper {
-                min-height: auto !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-            }
-            @page {
-                size: A4 portrait;
-                margin: 15mm;
-            }
-        }
-    </style>
-    <script>
-        window.onload = function() {
-            window.print();
-        };
-    </script>
-</body>
-</html>`;
+    <style>${printOverrideCss}</style>`;
+    document.body.appendChild(printArea);
 
-    // 新しいウィンドウで開く
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(fullHtml);
-        printWindow.document.close();
-    } else {
-        alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
-    }
+    // 印刷後に印刷領域を削除（一度だけ実行）
+    const handleAfterPrint = () => {
+        window.removeEventListener('afterprint', handleAfterPrint);
+        const area = document.getElementById('print-area');
+        if (area) area.remove();
+        if (typeof onAfterPrint === 'function') onAfterPrint();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    // ユーザー操作と同じ呼び出しスタック内で同期的に印刷
+    window.print();
 }
 
 // 印刷実行（プレビューモーダル用・旧方式）
@@ -1477,15 +1495,15 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
 
-    // 新しいウィンドウで印刷用ページを開き、PDFとして保存を促す
-    executePrintForOrder(order);
+    // 現在のページ内で印刷（印刷ダイアログを開いてPDF保存も可能）
+    // 印刷済みの記録は、印刷ダイアログが閉じた後（afterprint）に行う
+    executePrintForOrder(order, () => {
+        // プレビューモーダルを閉じる
+        printModal.classList.remove('active');
 
-    // 印刷済みとして記録
-    updateOrder(order.id, { isPrinted: true });
-    renderOrdersList();
-
-    // プレビューモーダルを閉じる
-    printModal.classList.remove('active');
+        updateOrder(order.id, { isPrinted: true });
+        renderOrdersList();
+    });
 });
 
 // 一覧に戻るボタン
