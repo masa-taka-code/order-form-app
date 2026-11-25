@@ -1941,3 +1941,124 @@ body.modal-open { overflow: hidden; }
 .summary-day-tag.is-tomorrow { background: var(--primary-soft); color: var(--primary-color); box-shadow: inset 0 0 0 2px var(--primary-color); }
 
 #setting-instagram-qr { min-height: 44px; font-size: 1rem; }
+
+/* ===== レスポンシブ調整（v1.8） ===== */
+/* すべて screen 限定（印刷用ルールには影響しない） */
+
+/* PC: 基本文字サイズ（スマホ17px・iPad20pxと整合） */
+@media screen and (min-width: 1025px) {
+  html { font-size: 20px; }
+}
+
+/* ナビタブは折り返さない */
+@media screen {
+  .nav-tab { white-space: nowrap; }
+
+  /* カードのボタン群 */
+  .order-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .order-card-actions .btn {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .order-card-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .order-card-actions .btn {
+    width: 100%;
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 0.85rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .order-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .order-card-header { flex-wrap: wrap; }
+  .order-card-badges {
+    order: -1;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .order-card-header-main { flex: 1 1 100%; }
+}
+
+/* 広い画面 */
+@media screen and (min-width: 1100px) {
+  .app-container { max-width: 1160px; }
+  .settings-container {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .order-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    align-items: stretch;
+  }
+  .order-form > .form-section { margin-bottom: 0; }
+  .order-form > .form-section--wide,
+  .order-form > .form-actions { grid-column: 1 / -1; }
+
+  .orders-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .orders-list > .empty-list { grid-column: 1 / -1; }
+  .orders-list > .order-card { margin: 0; }
+
+  .order-card-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .order-card-actions .btn {
+    width: 100%;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+}
+
+/* 横向きの短い画面（スマホを横にした状態） */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  html { font-size: 17px; }
+
+  .nav-tabs { margin: 6px 0; padding: 4px; }
+  .nav-tab { padding-top: 6px; padding-bottom: 6px; min-height: 40px; }
+
+  .edit-banner { padding: 4px 10px; margin-bottom: 8px; }
+  .edit-banner-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .edit-banner-btn { padding: 6px 12px; min-height: 40px; }
+
+  .form-section { padding: 14px; }
+}
+
+@media screen and (orientation: landscape) and (max-height: 500px) and (min-width: 700px) {
+  .order-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+    align-items: stretch;
+  }
+  .order-form > .form-section { margin-bottom: 0; }
+  .order-form > .form-section--wide,
+  .order-form > .form-actions { grid-column: 1 / -1; }
+}
