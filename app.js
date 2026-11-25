@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const APP_UPDATED = '2026-11-25';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -150,7 +150,7 @@ const tabScrollPositions = {};
 function switchTab(tabName, { scroll = 'restore' } = {}) {
     // 切替前のタブのスクロール位置を記憶
     const currentContent = Array.from(tabContents).find(c => c.classList.contains('active'));
-    if (currentContent) tabScrollPositions[currentContent.id.replace(/-tab$/, '')] = window.scrollY;
+    if (currentContent) tabScrollPositions[currentContent.id.replace(/-tab$/, '')] = getPageScrollY();
 
     navTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
     tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabName}-tab`));
@@ -511,12 +511,13 @@ clearFormBtn.addEventListener('click', () => {
 
 function renderOrdersList() {
     const orders = getOrders();
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = normalizeForSearch(searchInput.value);
+    const phoneTerm = searchInput.value.replace(/[-\s]/g, '');
     const statusFilter = filterStatus.value;
     const printFilter = filterPrint.value;
     let filtered = orders;
-    if (searchTerm) filtered = filtered.filter(o => o.customerName?.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
-    if (statusFilter !== 'all') filtered = filtered.filter(o => o.status === statusFilter);
+    if (searchTerm) filtered = filtered.filter(o => normalizeForSearch(o.customerName).includes(searchTerm) || (phoneTerm !== '' && String(o.phoneNumber || '').replace(/[-\s]/g, '').includes(phoneTerm)));
+    if (statusFilter !== 'all') filtered = filtered.filter(o => (o.status || '未処理') === statusFilter);
     if (printFilter === 'printed') filtered = filtered.filter(o => o.isPrinted);
     if (printFilter === 'unprinted') filtered = filtered.filter(o => !o.isPrinted);
 
@@ -572,7 +573,7 @@ function renderOrdersList() {
                 </div>
                 <div class="order-card-badges">
                     ${dueBadge}
-                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? `${icon('check')} 処理済み` : escapeHtml(order.status)}</span>
+                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? `${icon('check')} 処理済み` : escapeHtml(order.status || '未処理')}</span>
                 </div>
             </div>
             <div class="order-card-body">
@@ -610,11 +611,11 @@ function renderOrdersList() {
 
 // 注文一覧（受け取り予定表）: 受け取り日ごとにグループ化して表示（表示のみ・保存データは変更しない）
 function renderSummaryList() {
-    const search = summarySearchInput?.value?.toLowerCase() || '';
+    const search = normalizeForSearch(summarySearchInput?.value);
     let orders = getOrders().slice();
 
     if (search) {
-        orders = orders.filter(o => o.customerName?.toLowerCase().includes(search));
+        orders = orders.filter(o => normalizeForSearch(o.customerName).includes(search));
     }
 
     if (orders.length === 0) {
@@ -771,6 +772,12 @@ function toKatakana(str) {
     return result;
 }
 
+// 検索用の正規化（ひらがな→カタカナ、小文字化、空白除去）
+function normalizeForSearch(s) { return toKatakana(String(s || '')).toLowerCase().replace(/\s+/g, ''); }
+
+// モーダル表示中は body が position:fixed のため window.scrollY が 0 になる。実位置を返す
+function getPageScrollY() { const b = document.body; if (b.classList.contains('modal-open')) { const t = parseFloat(b.style.top) || 0; return -t; } return window.scrollY; }
+
 // お客様氏名にカタカナ変換と「様」を自動付与（IME対応版）
 if (customerNameInput) {
     let isComposing = false;
@@ -815,7 +822,7 @@ function toggleOrderStatus(id) {
 function toggleOrderPrinted(id) {
     const order = getOrders().find(o => o.id === id);
     if (!order) return;
-    const y = window.scrollY;
+    const y = getPageScrollY();
     updateOrder(id, { isPrinted: !order.isPrinted });
     renderOrdersList();
     window.scrollTo(0, y);
@@ -1989,12 +1996,11 @@ function renderCustomersList() {
     });
 
     let customers = Array.from(customerMap.values());
-    const searchTerm = customerSearchInput ? customerSearchInput.value.toLowerCase() : '';
+    const searchTerm = customerSearchInput ? normalizeForSearch(customerSearchInput.value) : '';
 
     // 検索フィルター
     let filtered = customers.filter(c => {
-        const name = (c.name || '').toLowerCase();
-        return name.includes(searchTerm);
+        return normalizeForSearch(c.name).includes(searchTerm);
     });
 
     // ソート処理
@@ -2116,4 +2122,37 @@ function useCustomerForOrderByName(name) {
     }
     window.addEventListener('scroll', updateToTop, { passive: true });
     updateToTop();
+})();
+
+// ===== 日付依存ラベルの自動更新（iPadを開きっぱなしでも最新に） =====
+function refreshTimeSensitiveViews() {
+    if (document.querySelector('.modal.active')) return;
+    const active = Array.from(tabContents).find(c => c.classList.contains('active'));
+    if (!active) return;
+    const tab = active.id.replace(/-tab$/, '');
+    if (tab !== 'summary' && tab !== 'list') return;
+    const ae = document.activeElement;
+    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName) && active.contains(ae)) return;
+    const y = getPageScrollY();
+    if (tab === 'summary') {
+        const wasOpen = document.querySelector('details.summary-past')?.open || false;
+        renderSummaryList();
+        const d = document.querySelector('details.summary-past');
+        if (d && wasOpen) d.open = true;
+    } else {
+        renderOrdersList();
+    }
+    window.scrollTo(0, y);
+}
+(() => {
+    const minuteKey = () => {
+        const n = new Date();
+        const p = (v) => String(v).padStart(2, '0');
+        return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}T${p(n.getHours())}:${p(n.getMinutes())}`;
+    };
+    let lastRenderMinuteKey = minuteKey();
+    const refresh = () => { refreshTimeSensitiveViews(); lastRenderMinuteKey = minuteKey(); };
+    setInterval(() => { if (minuteKey() !== lastRenderMinuteKey) refresh(); }, 30000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+    window.addEventListener('focus', refresh);
 })();
