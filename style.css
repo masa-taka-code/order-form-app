@@ -1920,3 +1920,9 @@ body.modal-open { overflow: hidden; }
   .summary-method { grid-area: method; text-align: right; }
   .summary-status { grid-area: status; }
 }
+
+/* ===== アイコン ===== */
+.icon { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex-shrink: 0; display: inline-block; }
+.icon-warn { color: #B45309; }
+.icon-muted { color: var(--text-secondary); }
+.empty-list-icon .icon { width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-secondary); }

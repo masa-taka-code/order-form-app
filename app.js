@@ -2,8 +2,36 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 const APP_UPDATED = '2026-11-25';
+
+// シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
+// 外部読み込みなしでオフラインでも表示できるよう、ここに直接書き込んでいる。
+// Lucide: ISC License — Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT).
+// All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+const ICON_PATHS = {
+    calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    package: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+    tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+    truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    store: '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    printer: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    clipboard: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    mapPin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+    arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+};
+function icon(name, extraClass = '') {
+    return `<svg class="icon ${extraClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_PATHS[name]}</svg>`;
+}
 
 const STORAGE_KEY = 'orderFormAppData';
 
@@ -399,7 +427,7 @@ let updateStickyOffsets = () => {};
 })();
 
 function showEditBanner(customerName) {
-    editBannerText.textContent = `✏️ 編集中：${customerName || ''} の注文`;
+    editBannerText.innerHTML = `${icon('pencil')} 編集中：${escapeHtml(customerName || '')} の注文`;
     editBanner.hidden = false;
     updateStickyOffsets();
 }
@@ -493,7 +521,7 @@ function renderOrdersList() {
     if (printFilter === 'unprinted') filtered = filtered.filter(o => !o.isPrinted);
 
     if (filtered.length === 0) {
-        ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
+        ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">${icon('clipboard')}</div><p>注文データがありません</p></div>`;
         return;
     }
 
@@ -510,8 +538,8 @@ function renderOrdersList() {
         const pickupValid = !!pickup && !isNaN(pickup.getTime());
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
         const pickupLine = pickupValid
-            ? `<div class="order-card-pickup">📅 ${pickup.getMonth() + 1}/${pickup.getDate()}(${weekdays[pickup.getDay()]}) ${pickup.getHours()}:${String(pickup.getMinutes()).padStart(2, '0')} <span class="order-card-pickup-label">受け取り</span></div>`
-            : `<div class="order-card-pickup order-card-pickup-unset">📅 受け取り日時 未設定</div>`;
+            ? `<div class="order-card-pickup">${icon('calendar')} ${pickup.getMonth() + 1}/${pickup.getDate()}(${weekdays[pickup.getDay()]}) ${pickup.getHours()}:${String(pickup.getMinutes()).padStart(2, '0')} <span class="order-card-pickup-label">受け取り</span></div>`
+            : `<div class="order-card-pickup order-card-pickup-unset">${icon('calendar')} 受け取り日時 未設定</div>`;
 
         let dueBadge = '';
         if (!processed && pickupValid) {
@@ -527,8 +555,8 @@ function renderOrdersList() {
             : '（商品なし）';
         const depts = Array.isArray(order.departments) ? order.departments.filter(Boolean) : [];
         let deliveryLine = '';
-        if (order.deliveryMethod === '配達') deliveryLine = `🚚 配達：${escapeHtml(order.deliveryAddress || '住所未登録')}`;
-        else if (order.deliveryMethod === '店頭') deliveryLine = '🏪 店頭受け取り';
+        if (order.deliveryMethod === '配達') deliveryLine = `${icon('truck')} 配達：${escapeHtml(order.deliveryAddress || '住所未登録')}`;
+        else if (order.deliveryMethod === '店頭') deliveryLine = `${icon('store')} 店頭受け取り`;
         const notes = String(order.notes || '').replace(/[\r\n]+/g, ' ').trim();
         const payment = order.paymentType || order.paymentMethod;
         let receptionShort = '未設定';
@@ -540,23 +568,23 @@ function renderOrdersList() {
             <div class="order-card-header">
                 <div class="order-card-header-main">
                     ${pickupLine}
-                    <div class="order-card-nameline"><div class="order-card-title">${escapeHtml(order.customerName)}</div>${order.phoneNumber ? `<span class="order-card-phone">📞 ${escapeHtml(order.phoneNumber)}</span>` : ''}</div>
+                    <div class="order-card-nameline"><div class="order-card-title">${escapeHtml(order.customerName)}</div>${order.phoneNumber ? `<span class="order-card-phone">${icon('phone')} ${escapeHtml(order.phoneNumber)}</span>` : ''}</div>
                 </div>
                 <div class="order-card-badges">
                     ${dueBadge}
-                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? '✓ 処理済み' : escapeHtml(order.status)}</span>
+                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? `${icon('check')} 処理済み` : escapeHtml(order.status)}</span>
                 </div>
             </div>
             <div class="order-card-body">
-                <div class="order-card-products">🍱 ${productsText}</div>
-                ${depts.length ? `<div class="order-card-depts">🏷 ${escapeHtml(depts.join('・'))}</div>` : ''}
+                <div class="order-card-products">${icon('package')} ${productsText}</div>
+                ${depts.length ? `<div class="order-card-depts">${icon('tag')} ${escapeHtml(depts.join('・'))}</div>` : ''}
                 ${deliveryLine ? `<div class="order-card-info">${deliveryLine}</div>` : ''}
-                ${notes ? `<div class="order-card-notes">⚠️ ${escapeHtml(notes)}</div>` : ''}
-                ${processed ? `<div class="order-card-info order-card-processed-at">✅ 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
+                ${notes ? `<div class="order-card-notes">${icon('alert', 'icon-warn')} ${escapeHtml(notes)}</div>` : ''}
+                ${processed ? `<div class="order-card-info order-card-processed-at">${icon('checkCircle')} 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
             </div>
             <div class="order-card-meta">
                 <span class="order-card-amount">合計 ¥${(order.totalAmount || 0).toLocaleString()}${payment ? `（${escapeHtml(payment)}）` : ''}</span>
-                <span>${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</span>
+                <span>${order.isPrinted ? `${icon('printer')} 印刷済み` : `${icon('file', 'icon-muted')} 未印刷`}</span>
                 <span>受付日 ${receptionShort}</span>
             </div>
             <div class="order-card-actions">
@@ -590,7 +618,7 @@ function renderSummaryList() {
     }
 
     if (orders.length === 0) {
-        summaryList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
+        summaryList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">${icon('clipboard')}</div><p>注文データがありません</p></div>`;
         return;
     }
 
@@ -658,16 +686,16 @@ function renderSummaryList() {
             prodText = `${f.name || ''}${hasQty ? ` ×${f.quantity}` : ''}`;
             if (prods.length > 1) prodText += ` ほか${prods.length - 1}点`;
         }
-        const noteMark = (typeof o.notes === 'string' ? o.notes.trim() : o.notes) ? ' <span title="備考あり">⚠️</span>' : '';
+        const noteMark = (typeof o.notes === 'string' ? o.notes.trim() : o.notes) ? ` <span title="備考あり" aria-label="備考あり">${icon('alert', 'icon-warn')}</span>` : '';
         let method = '';
-        if (o.deliveryMethod === '店頭') method = '<span title="店頭受け取り" aria-label="店頭受け取り">🏪</span>';
-        else if (o.deliveryMethod === '配達') method = '<span title="配達" aria-label="配達">🚚</span>';
+        if (o.deliveryMethod === '店頭') method = `<span title="店頭受け取り" aria-label="店頭受け取り">${icon('store')}</span>`;
+        else if (o.deliveryMethod === '配達') method = `<span title="配達" aria-label="配達">${icon('truck')}</span>`;
         const pill = done
-            ? '<span class="summary-pill done">✓処理済み</span>'
+            ? `<span class="summary-pill done">${icon('check')} 処理済み</span>`
             : '<span class="summary-pill pending">未処理</span>';
         const printIcon = o.isPrinted
-            ? '<span title="印刷済み">🖨️</span>'
-            : '<span title="未印刷">📄</span>';
+            ? `<span title="印刷済み" aria-label="印刷済み">${icon('printer')}</span>`
+            : `<span title="未印刷" aria-label="未印刷">${icon('file', 'icon-muted')}</span>`;
         return `
             <div class="summary-row ${done ? 'is-done' : ''}" data-id="${escapeHtml(String(o.id))}">
                 <div class="summary-time">${time}</div>
@@ -691,7 +719,7 @@ function renderSummaryList() {
 
     let html = '';
     if (overduePast.length > 0) {
-        html += `<div class="summary-group-header summary-group-overdue">⚠️ 受け取り日を過ぎた未処理 ・ ${overduePast.length}件</div>`
+        html += `<div class="summary-group-header summary-group-overdue">${icon('alert')} 受け取り日を過ぎた未処理 ・ ${overduePast.length}件</div>`
             + overduePast.map(x => renderRow(x.o, x.p, true)).join('');
     }
     html += groupByDate(upcoming, false).map(renderDateGroup).join('');
@@ -1903,6 +1931,8 @@ function formatDateTime(dateTimeStr) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // index.html の data-icon 指定の場所に線アイコンを差し込む
+    document.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = icon(el.dataset.icon); });
     // ブラウザにデータの永続保存を依頼（結果は使わない）
     try {
         if (navigator.storage && navigator.storage.persist) {
@@ -1986,7 +2016,7 @@ function renderCustomersList() {
     if (filtered.length === 0) {
         customersList.innerHTML = `
             <div class="empty-list">
-                <div class="empty-list-icon">👥</div>
+                <div class="empty-list-icon">${icon('users')}</div>
                 <p>${searchTerm ? '該当するお客様が見つかりません' : '注文履歴がありません'}</p>
             </div>
         `;
@@ -2000,8 +2030,8 @@ function renderCustomersList() {
                 <div class="order-card-date">最終注文: ${formatDate(customer.lastOrderDate)}</div>
             </div>
             <div class="order-card-body">
-                <div class="order-card-info">📞 ${escapeHtml(customer.phone || '未登録')}</div>
-                <div class="order-card-info">📍 ${escapeHtml(customer.address || '未登録')}</div>
+                <div class="order-card-info">${icon('phone')} ${escapeHtml(customer.phone || '未登録')}</div>
+                <div class="order-card-info">${icon('mapPin')} ${escapeHtml(customer.address || '未登録')}</div>
             </div>
             <div class="order-card-actions">
                 <button class="btn btn-primary use-customer-btn" data-name="${escapeHtml(customer.name || '')}">注文に使用</button>
@@ -2077,7 +2107,7 @@ function useCustomerForOrderByName(name) {
     toTopBtn.className = 'scroll-top-btn';
     toTopBtn.hidden = true;
     toTopBtn.setAttribute('aria-label', 'ページの上へ戻る');
-    toTopBtn.textContent = '▲ 上へ';
+    toTopBtn.innerHTML = `${icon('arrowUp')} 上へ`;
     document.body.appendChild(toTopBtn);
     toTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     function updateToTop() {
