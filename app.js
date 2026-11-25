@@ -337,6 +337,8 @@ function getFormData() {
 
 // 編集中の注文ID（新規の場合はnull）
 let editingOrderId = null;
+// 編集画面を開いた直後のフォーム内容（変更の有無の判定用）
+let editBaselineJson = null;
 
 // 編集中バナー（入力フォームの上に表示）
 const editBanner = document.createElement('div');
@@ -383,12 +385,11 @@ orderForm.addEventListener('submit', (e) => {
         const update = { ...data };
         let message = '注文を更新しました！';
         if (stored && stored.isPrinted) {
-            // 印刷物の内容が変わっていたら「未印刷」に戻す（印刷済みの紙と内容がずれるため）。
-            // 保存データの項目同士を比べると、古い形式で保存された注文で
-            // 何も変えていなくても「変更あり」と誤判定するため、印刷物そのものを比べる
-            const updated = { ...stored, ...update };
-            const printedPaper = o => generateCustomerCopyHtml(o) + generatePrintHtmlForPaper(o) + generatePrintHtmlForPaper(o, '部門控え');
-            const changed = printedPaper(stored) !== printedPaper(updated);
+            // 編集画面で内容が変更されていたら「未印刷」に戻す（印刷済みの紙と内容がずれるため）。
+            // 保存データと直接比べると、古い形式の注文はフォームに読み込んだ時点で
+            // 初期値（税区分など）が補われ、何も変えていなくても「変更あり」になるため、
+            // 編集画面を開いた直後のフォームの状態と比べる
+            const changed = JSON.stringify(data) !== editBaselineJson;
             if (changed) {
                 update.isPrinted = false;
                 message = '注文を更新しました！\n内容が変わったため「未印刷」に戻しました。再印刷してください。';
@@ -676,6 +677,8 @@ function editOrder(id) {
             addProductRow();
         }
         updateTotal();
+        // 変更の有無を判定するため、読み込み直後のフォームの状態を記録
+        editBaselineJson = JSON.stringify(getFormData());
     } catch (error) {
         console.error('編集エラー:', error);
         alert('編集中にエラーが発生しました。コンソールを確認してください。');
