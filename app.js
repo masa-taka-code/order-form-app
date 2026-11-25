@@ -1,4 +1,38 @@
 // ===== Order Form App =====
+
+// アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
+// 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
+const APP_VERSION = '1.7.0';
+const APP_UPDATED = '2026-11-25';
+
+// シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
+// 外部読み込みなしでオフラインでも表示できるよう、ここに直接書き込んでいる。
+// Lucide: ISC License — Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT).
+// All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+const ICON_PATHS = {
+    calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    package: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+    tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+    truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    store: '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    printer: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    clipboard: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    mapPin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+    arrowUp: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+};
+function icon(name, extraClass = '') {
+    return `<svg class="icon ${extraClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_PATHS[name]}</svg>`;
+}
+
 const STORAGE_KEY = 'orderFormAppData';
 
 // localStorageへの保存。容量超過などで失敗した場合は、
@@ -84,32 +118,6 @@ function saveCustomers(customers) {
     saveToStorage(CUSTOMER_STORAGE_KEY, customers);
 }
 
-function addCustomer(customer) {
-    const customers = getCustomers();
-    customer.id = Date.now().toString();
-    customer.createdAt = new Date().toISOString();
-    customers.unshift(customer);
-    saveCustomers(customers);
-    return customer;
-}
-
-function updateCustomer(id, updatedData) {
-    const customers = getCustomers();
-    const index = customers.findIndex(c => c.id === id);
-    if (index !== -1) {
-        customers[index] = { ...customers[index], ...updatedData };
-        saveCustomers(customers);
-        return customers[index];
-    }
-    return null;
-}
-
-function deleteCustomer(id) {
-    const customers = getCustomers();
-    const filtered = customers.filter(c => c.id !== id);
-    saveCustomers(filtered);
-}
-
 // DOM Elements
 const navTabs = document.querySelectorAll('.nav-tab');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -134,19 +142,34 @@ const printContent = document.getElementById('print-content');
 const detailContent = document.getElementById('detail-content');
 const customerNameInput = document.getElementById('customer-name');
 
+// タブごとのスクロール位置（タブ切替時に記憶・復元する。保存データには影響しない）
+const tabScrollPositions = {};
+
+// タブ切替の共通処理
+// scroll: 'restore' = そのタブで最後に見ていた位置へ / 'top' = 先頭へ
+function switchTab(tabName, { scroll = 'restore' } = {}) {
+    // 切替前のタブのスクロール位置を記憶
+    const currentContent = Array.from(tabContents).find(c => c.classList.contains('active'));
+    if (currentContent) tabScrollPositions[currentContent.id.replace(/-tab$/, '')] = getPageScrollY();
+
+    navTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+    tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabName}-tab`));
+    if (tabName === 'list') renderOrdersList();
+    if (tabName === 'summary') renderSummaryList();
+    if (tabName === 'customers') renderCustomersList();
+
+    // 描画後にレイアウトが確定してからスクロールする
+    const y = scroll === 'top' ? 0 : (tabScrollPositions[tabName] || 0);
+    requestAnimationFrame(() => window.scrollTo(0, y));
+}
+
 // Tab switching
 navTabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const tabName = tab.dataset.tab;
-        navTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        tabContents.forEach(content => {
-            content.classList.remove('active');
-            if (content.id === `${tabName}-tab`) content.classList.add('active');
-        });
-        if (tabName === 'list') renderOrdersList();
-        if (tabName === 'summary') renderSummaryList();
-        if (tabName === 'customers') renderCustomersList();
+        // 編集中に入力タブ以外へ移動した場合は編集をやめる（未保存の編集内容は破棄）
+        if (editingOrderId && tabName !== 'input') cancelEditMode();
+        switchTab(tabName);
     });
 });
 
@@ -250,8 +273,16 @@ function updateTotal() {
 
 addProductBtn.addEventListener('click', addProductRow);
 
+// 端末のローカル日付をYYYY-MM-DDで返す（toISOStringはUTC基準で日本の午前9時前に前日になるため）
+function getLocalDateString(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 function initForm() {
-    document.getElementById('reception-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('reception-date').value = getLocalDateString();
     productsContainer.innerHTML = '';
     addProductRow();
     updateTotal();
@@ -353,18 +384,108 @@ function getFormData() {
 
 // 編集中の注文ID（新規の場合はnull）
 let editingOrderId = null;
+// 編集画面を開いた直後のフォーム内容（変更の有無の判定用）
+let editBaselineJson = null;
+
+// 編集中バナー（入力フォームの上に表示）
+const editBanner = document.createElement('div');
+editBanner.className = 'edit-banner';
+editBanner.hidden = true;
+const editBannerText = document.createElement('span');
+editBannerText.className = 'edit-banner-text';
+const editBannerCancelBtn = document.createElement('button');
+editBannerCancelBtn.type = 'button';
+editBannerCancelBtn.className = 'btn btn-secondary edit-banner-btn';
+editBannerCancelBtn.textContent = '編集をやめる';
+editBanner.appendChild(editBannerText);
+editBanner.appendChild(editBannerCancelBtn);
+orderForm.parentNode.insertBefore(editBanner, orderForm);
+editBannerCancelBtn.addEventListener('click', () => cancelEditMode());
+
+// 編集中バナーを上部のタブ（sticky）の真下に固定するため、タブの下端位置をCSS変数に反映する
+// （タブの高さは画面幅で変わるため、実測して追従させる）
+let updateStickyOffsets = () => {};
+(() => {
+    const nav = document.querySelector('.nav-tabs');
+    if (!nav) return;
+    const update = () => {
+        const top = parseFloat(getComputedStyle(nav).top) || 0;
+        const navBottom = top + nav.offsetHeight;
+        document.documentElement.style.setProperty('--nav-sticky-bottom', `${navBottom + 8}px`);
+        // フォーカス／検証エラーの項目が固定ヘッダー（タブ＋編集バナー）に隠れないよう余白を確保
+        const bannerH = editBanner.hidden ? 0 : editBanner.offsetHeight + 8;
+        document.documentElement.style.scrollPaddingTop = `${navBottom + bannerH + 8}px`;
+    };
+    updateStickyOffsets = update;
+    update();
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(update);
+        ro.observe(nav);
+        ro.observe(editBanner);
+    }
+    window.addEventListener('resize', update);
+})();
+
+function showEditBanner(customerName) {
+    editBannerText.innerHTML = `${icon('pencil')} 編集中：${escapeHtml(customerName || '')} の注文`;
+    editBanner.hidden = false;
+    updateStickyOffsets();
+}
+
+function hideEditBanner() {
+    editBanner.hidden = true;
+    editBannerText.textContent = '';
+    updateStickyOffsets();
+}
+
+// 編集モードを解除してフォームを新規入力の状態に戻す
+function cancelEditMode() {
+    editingOrderId = null;
+    orderForm.reset();
+    initForm();
+    hideEditBanner();
+}
 
 orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = getFormData();
-    if (!data.customerName) { alert('お客様氏名を入力してください'); return; }
-    if (data.products.length === 0 || !data.products.some(p => p.name)) { alert('商品を1つ以上入力してください'); return; }
+    if (!data.customerName) {
+        alert('お客様氏名を入力してください');
+        customerNameInput.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        customerNameInput.focus({ preventScroll: true });
+        return;
+    }
+    if (data.products.length === 0 || !data.products.some(p => p.name)) {
+        alert('商品を1つ以上入力してください');
+        // 最初の商品名欄へスクロールしてフォーカス
+        const el = productsContainer.querySelector('.product-name');
+        if (el) {
+            el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            el.focus({ preventScroll: true });
+        }
+        return;
+    }
 
     if (editingOrderId) {
         // 編集モード：既存の注文を更新
-        updateOrder(editingOrderId, data);
-        alert('注文を更新しました！');
+        const stored = getOrders().find(o => o.id === editingOrderId);
+        const update = { ...data };
+        let message = '注文を更新しました！';
+        if (stored && stored.isPrinted) {
+            // 編集画面で内容が変更されていたら「未印刷」に戻す（印刷済みの紙と内容がずれるため）。
+            // 保存データと直接比べると、古い形式の注文はフォームに読み込んだ時点で
+            // 初期値（税区分など）が補われ、何も変えていなくても「変更あり」になるため、
+            // 編集画面を開いた直後のフォームの状態と比べる
+            const changed = JSON.stringify(data) !== editBaselineJson;
+            if (changed) {
+                update.isPrinted = false;
+                message = '注文を更新しました！\n内容が変わったため「未印刷」に戻しました。再印刷してください。';
+            }
+        }
+        updateOrder(editingOrderId, update);
+        alert(message);
         editingOrderId = null;
+        hideEditBanner();
     } else {
         // 新規モード
         addOrder(data);
@@ -372,96 +493,261 @@ orderForm.addEventListener('submit', (e) => {
     }
     orderForm.reset();
     initForm();
+    // 保存後は画面の先頭へ戻す
+    window.scrollTo(0, 0);
+});
+
+// ブラウザ標準の検証（required）で止まった場合も、固定ヘッダーに隠れない位置へスクロール
+customerNameInput.addEventListener('invalid', (e) => {
+    const el = e.target;
+    Promise.resolve().then(() => el.scrollIntoView({ block: 'start' }));
 });
 
 clearFormBtn.addEventListener('click', () => {
     if (confirm('入力内容をクリアしますか？')) {
-        orderForm.reset();
-        initForm();
-        editingOrderId = null;
+        cancelEditMode();
     }
 });
 
 function renderOrdersList() {
     const orders = getOrders();
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = normalizeForSearch(searchInput.value);
+    const phoneTerm = searchInput.value.replace(/[-\s]/g, '');
     const statusFilter = filterStatus.value;
     const printFilter = filterPrint.value;
     let filtered = orders;
-    if (searchTerm) filtered = filtered.filter(o => o.customerName?.toLowerCase().includes(searchTerm) || o.phoneNumber?.includes(searchTerm));
-    if (statusFilter !== 'all') filtered = filtered.filter(o => o.status === statusFilter);
+    if (searchTerm) filtered = filtered.filter(o => normalizeForSearch(o.customerName).includes(searchTerm) || (phoneTerm !== '' && String(o.phoneNumber || '').replace(/[-\s]/g, '').includes(phoneTerm)));
+    if (statusFilter !== 'all') filtered = filtered.filter(o => (o.status || '未処理') === statusFilter);
     if (printFilter === 'printed') filtered = filtered.filter(o => o.isPrinted);
     if (printFilter === 'unprinted') filtered = filtered.filter(o => !o.isPrinted);
 
     if (filtered.length === 0) {
-        ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
+        ordersList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">${icon('clipboard')}</div><p>注文データがありません</p></div>`;
         return;
     }
 
-    ordersList.innerHTML = filtered.map(order => `
-        <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${order.id}">
+    const nowForCards = new Date();
+    const todayStr = getLocalDateString(nowForCards);
+    const tomorrowDate = new Date(nowForCards);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = getLocalDateString(tomorrowDate);
+
+    ordersList.innerHTML = filtered.map(order => {
+        const processed = order.status === '処理済み';
+        const idAttr = escapeHtml(String(order.id));
+        const pickup = order.orderDatetime ? new Date(order.orderDatetime) : null;
+        const pickupValid = !!pickup && !isNaN(pickup.getTime());
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+        const pickupLine = pickupValid
+            ? `<div class="order-card-pickup">${icon('calendar')} ${pickup.getMonth() + 1}/${pickup.getDate()}(${weekdays[pickup.getDay()]}) ${pickup.getHours()}:${String(pickup.getMinutes()).padStart(2, '0')} <span class="order-card-pickup-label">受け取り</span></div>`
+            : `<div class="order-card-pickup order-card-pickup-unset">${icon('calendar')} 受け取り日時 未設定</div>`;
+
+        let dueBadge = '';
+        if (!processed && pickupValid) {
+            const pickupDateStr = getLocalDateString(pickup);
+            if (pickup < nowForCards) dueBadge = '<span class="order-card-due due-overdue">過ぎています</span>';
+            else if (pickupDateStr === todayStr) dueBadge = '<span class="order-card-due due-today">今日</span>';
+            else if (pickupDateStr === tomorrowStr) dueBadge = '<span class="order-card-due due-tomorrow">明日</span>';
+        }
+
+        const products = Array.isArray(order.products) ? order.products.filter(p => p && p.name) : [];
+        const productsText = products.length
+            ? products.map(p => `${escapeHtml(p.name)}${p.quantity ? ` ×${escapeHtml(String(p.quantity))}` : ''}`).join('、')
+            : '（商品なし）';
+        const depts = Array.isArray(order.departments) ? order.departments.filter(Boolean) : [];
+        let deliveryLine = '';
+        if (order.deliveryMethod === '配達') deliveryLine = `${icon('truck')} 配達：${escapeHtml(order.deliveryAddress || '住所未登録')}`;
+        else if (order.deliveryMethod === '店頭') deliveryLine = `${icon('store')} 店頭受け取り`;
+        const notes = String(order.notes || '').replace(/[\r\n]+/g, ' ').trim();
+        const payment = order.paymentType || order.paymentMethod;
+        let receptionShort = '未設定';
+        const rm = /^(\d{4})-(\d{2})-(\d{2})/.exec(order.receptionDate || '');
+        if (rm) receptionShort = `${Number(rm[2])}/${Number(rm[3])}`;
+
+        return `
+        <div class="order-card ${processed ? 'processed' : ''}" data-id="${idAttr}">
             <div class="order-card-header">
-                <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">${formatDate(order.receptionDate)}</div></div>
-                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status}</span>
+                <div class="order-card-header-main">
+                    ${pickupLine}
+                    <div class="order-card-nameline"><div class="order-card-title">${escapeHtml(order.customerName)}</div>${order.phoneNumber ? `<span class="order-card-phone">${icon('phone')} ${escapeHtml(order.phoneNumber)}</span>` : ''}</div>
+                </div>
+                <div class="order-card-badges">
+                    ${dueBadge}
+                    <span class="order-card-status ${processed ? 'completed' : 'pending'}">${processed ? `${icon('check')} 処理済み` : escapeHtml(order.status || '未処理')}</span>
+                </div>
             </div>
             <div class="order-card-body">
-                <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
-                <div class="order-card-info">📞 ${escapeHtml(order.phoneNumber || '未登録')}</div>
-                <div class="order-card-info">🚚 ${escapeHtml(order.deliveryMethod || '未設定')}</div>
-                <div class="order-card-amount">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div>
+                <div class="order-card-products">${icon('package')} ${productsText}</div>
+                ${depts.length ? `<div class="order-card-depts">${icon('tag')} ${escapeHtml(depts.join('・'))}</div>` : ''}
+                ${deliveryLine ? `<div class="order-card-info">${deliveryLine}</div>` : ''}
+                ${notes ? `<div class="order-card-notes">${icon('alert', 'icon-warn')} ${escapeHtml(notes)}</div>` : ''}
+                ${processed ? `<div class="order-card-info order-card-processed-at">${icon('checkCircle')} 処理日時：${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</div>` : ''}
+            </div>
+            <div class="order-card-meta">
+                <span class="order-card-amount">合計 ¥${(order.totalAmount || 0).toLocaleString()}${payment ? `（${escapeHtml(payment)}）` : ''}</span>
+                <span>${order.isPrinted ? `${icon('printer')} 印刷済み` : `${icon('file', 'icon-muted')} 未印刷`}</span>
+                <span>受付日 ${receptionShort}</span>
             </div>
             <div class="order-card-actions">
-                <button class="btn btn-secondary view-btn" data-id="${order.id}">詳細</button>
-                <button class="btn btn-secondary edit-btn" data-id="${order.id}">編集</button>
-                <button class="btn btn-secondary print-preview-btn" data-id="${order.id}">印刷</button>
-                <button class="btn btn-primary toggle-status-btn" data-id="${order.id}">${order.status === '処理済み' ? '未処理に戻す' : '処理済みにする'}</button>
-                <button class="btn btn-danger delete-btn" data-id="${order.id}">削除</button>
+                <button class="btn btn-secondary view-btn" data-id="${idAttr}">詳細</button>
+                <button class="btn btn-secondary edit-btn" data-id="${idAttr}">編集</button>
+                <button class="btn btn-secondary print-preview-btn" data-id="${idAttr}">印刷</button>
+                <button class="btn btn-secondary toggle-print-btn" data-id="${idAttr}">${order.isPrinted ? '未印刷に戻す' : '印刷済みにする'}</button>
+                <button class="btn btn-primary toggle-status-btn" data-id="${idAttr}">${processed ? '未処理に戻す' : '処理済みにする'}</button>
+                <button class="btn btn-danger delete-btn" data-id="${idAttr}">削除</button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     ordersList.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showOrderDetail(btn.dataset.id); }));
     ordersList.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); editOrder(btn.dataset.id); }));
     ordersList.querySelectorAll('.print-preview-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); showPrintPreview(btn.dataset.id); }));
+    ordersList.querySelectorAll('.toggle-print-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleOrderPrinted(btn.dataset.id); }));
     ordersList.querySelectorAll('.toggle-status-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); toggleOrderStatus(btn.dataset.id); }));
     ordersList.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); handleDeleteOrder(btn.dataset.id); }));
     ordersList.querySelectorAll('.order-card').forEach(card => card.addEventListener('click', () => showOrderDetail(card.dataset.id)));
 }
 
-// サマリーリスト（注文日、名前、商品名のみ表示）
+// 注文一覧（受け取り予定表）: 受け取り日ごとにグループ化して表示（表示のみ・保存データは変更しない）
 function renderSummaryList() {
-    const search = summarySearchInput?.value?.toLowerCase() || '';
-    let orders = getOrders();
+    const search = normalizeForSearch(summarySearchInput?.value);
+    let orders = getOrders().slice();
 
     if (search) {
-        orders = orders.filter(o => o.customerName?.toLowerCase().includes(search));
+        orders = orders.filter(o => normalizeForSearch(o.customerName).includes(search));
     }
 
-    // 日付の新しい順にソート
-    orders.sort((a, b) => new Date(b.receptionDate) - new Date(a.receptionDate));
-
     if (orders.length === 0) {
-        summaryList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">📋</div><p>注文データがありません</p></div>`;
+        summaryList.innerHTML = `<div class="empty-list"><div class="empty-list-icon">${icon('clipboard')}</div><p>注文データがありません</p></div>`;
         return;
     }
 
-    summaryList.innerHTML = orders.map(order => {
-        const date = formatDate(order.receptionDate);
-        const name = order.customerName || '（名前なし）';
-        const products = order.products?.map(p => p.name).join(', ') || '（商品なし）';
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+    const tomorrowStr = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+    const nowKey = `${todayStr}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const dtRe = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/;
 
+    const parsePickup = (o) => {
+        const m = typeof o.orderDatetime === 'string' ? o.orderDatetime.match(dtRe) : null;
+        if (!m) return null;
+        const y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5];
+        const dt = new Date(y, mo - 1, d, h, mi);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d || h > 23 || mi > 59) return null;
+        return { date: `${m[1]}-${m[2]}-${m[3]}`, key: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`, y, mo, d, h, mi: m[5] };
+    };
+
+    const dated = [];
+    const unset = [];
+    orders.forEach(o => {
+        const p = parsePickup(o);
+        if (p) dated.push({ o, p }); else unset.push(o);
+    });
+
+    const isDone = (o) => o.status === '処理済み';
+    const byTime = (a, b) => a.p.key.localeCompare(b.p.key);
+    const upcoming = dated.filter(x => x.p.date >= todayStr).sort(byTime);
+    const pastAll = dated.filter(x => x.p.date < todayStr).sort(byTime);
+    // 受け取り日を過ぎた未処理は常時表示、処理済みのみ折りたたみ
+    const overduePast = pastAll.filter(x => !isDone(x.o));
+    const past = pastAll.filter(x => isDone(x.o));
+
+    const groupByDate = (list, desc) => {
+        const map = new Map();
+        list.forEach(x => {
+            if (!map.has(x.p.date)) map.set(x.p.date, []);
+            map.get(x.p.date).push(x);
+        });
+        const dates = Array.from(map.keys()).sort();
+        if (desc) dates.reverse();
+        return dates.map(date => ({ date, items: map.get(date) }));
+    };
+
+    const countText = (items, getOrder) => {
+        const u = items.filter(x => !isDone(getOrder(x))).length;
+        return `${items.length}件${u > 0 ? `（未処理 ${u}）` : ''}`;
+    };
+
+    const renderRow = (o, p, stacked) => {
+        const done = isDone(o);
+        let time = p ? `${p.h}:${p.mi}` : '--';
+        if (stacked && p) {
+            const wdp = weekdays[new Date(p.y, p.mo - 1, p.d).getDay()];
+            time = `<span class="summary-date">${p.mo}/${p.d}(${wdp})</span><span>${time}</span>`;
+        }
+        const overdue = p && !done && (stacked || (p.date === todayStr && p.key < nowKey));
+        const name = o.customerName || '（名前なし）';
+        const prods = Array.isArray(o.products) ? o.products.filter(Boolean) : [];
+        let prodText = '（商品なし）';
+        if (prods.length > 0) {
+            const f = prods[0];
+            const hasQty = f.quantity !== undefined && f.quantity !== null && f.quantity !== '';
+            prodText = `${f.name || ''}${hasQty ? ` ×${f.quantity}` : ''}`;
+            if (prods.length > 1) prodText += ` ほか${prods.length - 1}点`;
+        }
+        const noteMark = (typeof o.notes === 'string' ? o.notes.trim() : o.notes) ? ` <span title="備考あり" aria-label="備考あり">${icon('alert', 'icon-warn')}</span>` : '';
+        let method = '';
+        if (o.deliveryMethod === '店頭') method = `<span title="店頭受け取り" aria-label="店頭受け取り">${icon('store')}</span>`;
+        else if (o.deliveryMethod === '配達') method = `<span title="配達" aria-label="配達">${icon('truck')}</span>`;
+        const pill = done
+            ? `<span class="summary-pill done">${icon('check')} 処理済み</span>`
+            : '<span class="summary-pill pending">未処理</span>';
+        const printIcon = o.isPrinted
+            ? `<span title="印刷済み" aria-label="印刷済み">${icon('printer')}</span>`
+            : `<span title="未印刷" aria-label="未印刷">${icon('file', 'icon-muted')}</span>`;
         return `
-            <div class="summary-item" data-id="${order.id}">
-                <span class="summary-item-date">${date}</span>
-                <span class="summary-item-name">${escapeHtml(name)}</span>
-                <span class="summary-item-products">${escapeHtml(products)}</span>
-            </div>
-        `;
-    }).join('');
+            <div class="summary-row ${done ? 'is-done' : ''}" data-id="${escapeHtml(String(o.id))}">
+                <div class="summary-time">${time}</div>
+                <div class="summary-name">${escapeHtml(name)}</div>
+                <div class="summary-products">${escapeHtml(prodText)}${noteMark}</div>
+                <div class="summary-method">${method}</div>
+                <div class="summary-status">${overdue ? '<span class="summary-overdue">過ぎています</span>' : pill}${printIcon}</div>
+            </div>`;
+    };
+
+    const dateHeader = (date, items) => {
+        const [y, m, d] = date.split('-').map(Number);
+        const wd = weekdays[new Date(y, m - 1, d).getDay()];
+        let tag = '';
+        if (date === todayStr) tag = ' <span class="summary-day-tag is-today">今日</span>';
+        else if (date === tomorrowStr) tag = ' <span class="summary-day-tag is-tomorrow">明日</span>';
+        return `<div class="summary-group-header">${m}/${d}(${wd})${tag} ・ ${countText(items, x => x.o)}</div>`;
+    };
+
+    const renderDateGroup = (g) => dateHeader(g.date, g.items) + g.items.map(x => renderRow(x.o, x.p)).join('');
+
+    let html = '';
+    if (overduePast.length > 0) {
+        html += `<div class="summary-group-header summary-group-overdue">${icon('alert')} 受け取り日を過ぎた未処理 ・ ${overduePast.length}件</div>`
+            + overduePast.map(x => renderRow(x.o, x.p, true)).join('');
+    }
+    html += groupByDate(upcoming, false).map(renderDateGroup).join('');
+
+    if (unset.length > 0) {
+        unset.sort((a, b) => {
+            const ca = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+            const cb = b.createdAt ? new Date(b.createdAt).getTime() : NaN;
+            if (!isNaN(ca) && !isNaN(cb) && ca !== cb) return cb - ca;
+            if (!isNaN(ca) !== !isNaN(cb)) return isNaN(ca) ? 1 : -1;
+            return String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
+        });
+        html += `<div class="summary-group-header">受け取り日時 未設定 ・ ${countText(unset, x => x)}</div>`
+            + unset.map(o => renderRow(o, null)).join('');
+    }
+
+    if (past.length > 0) {
+        html += `<details class="summary-past"><summary>過去の処理済み（${past.length}件）</summary>`
+            + groupByDate(past, true).map(renderDateGroup).join('')
+            + `</details>`;
+    }
+
+    summaryList.innerHTML = html;
 
     // クリックで詳細表示
-    summaryList.querySelectorAll('.summary-item').forEach(item => {
-        item.addEventListener('click', () => showOrderDetail(item.dataset.id));
+    summaryList.querySelectorAll('.summary-row').forEach(row => {
+        row.addEventListener('click', () => showOrderDetail(row.dataset.id));
     });
 }
 
@@ -485,6 +771,12 @@ function toKatakana(str) {
     }
     return result;
 }
+
+// 検索用の正規化（ひらがな→カタカナ、小文字化、空白除去）
+function normalizeForSearch(s) { return toKatakana(String(s || '')).toLowerCase().replace(/\s+/g, ''); }
+
+// モーダル表示中は body が position:fixed のため window.scrollY が 0 になる。実位置を返す
+function getPageScrollY() { const b = document.body; if (b.classList.contains('modal-open')) { const t = parseFloat(b.style.top) || 0; return -t; } return window.scrollY; }
 
 // お客様氏名にカタカナ変換と「様」を自動付与（IME対応版）
 if (customerNameInput) {
@@ -517,9 +809,23 @@ function toggleOrderStatus(id) {
     const orders = getOrders();
     const order = orders.find(o => o.id === id);
     if (order) {
-        updateOrder(id, { status: order.status === '処理済み' ? '未処理' : '処理済み' });
+        if (order.status === '処理済み') {
+            if (!confirm('「未処理」に戻しますか？\n記録されている処理日時は消えます。')) return;
+            updateOrder(id, { status: '未処理', processedAt: null });
+        } else {
+            updateOrder(id, { status: '処理済み', processedAt: new Date().toISOString() });
+        }
         renderOrdersList();
     }
+}
+
+function toggleOrderPrinted(id) {
+    const order = getOrders().find(o => o.id === id);
+    if (!order) return;
+    const y = getPageScrollY();
+    updateOrder(id, { isPrinted: !order.isPrinted });
+    renderOrdersList();
+    window.scrollTo(0, y);
 }
 
 function handleDeleteOrder(id) {
@@ -540,7 +846,7 @@ function showOrderDetail(id) {
     if (!order) return;
     currentOrderId = id;
     detailContent.innerHTML = `
-        <div class="detail-section"><h3>受付情報</h3><p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${escapeHtml(order.receptionMethod || '未設定')}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${escapeHtml(order.deliveryMethod || '未設定')}</p></div>
+        <div class="detail-section"><h3>受付情報</h3><p>状態: ${escapeHtml(order.status || '未処理')}</p>${order.status === '処理済み' ? `<p>処理日時: ${(order.processedAt && formatDateTime(order.processedAt)) || '記録なし'}</p>` : ''}<p>受付日: ${formatDate(order.receptionDate)}</p><p>お受け取り日時: ${order.orderDatetime ? formatDateTime(order.orderDatetime) : '未設定'}</p><p>受付方法: ${escapeHtml(order.receptionMethod || '未設定')}</p><p>受注者: ${escapeHtml(order.staffName || '未登録')}</p><p>受け取り方法: ${escapeHtml(order.deliveryMethod || '未設定')}</p></div>
         <div class="detail-section"><h3>お客様情報</h3><p>氏名: ${escapeHtml(order.customerName || '')}</p><p>電話番号: ${escapeHtml(order.phoneNumber || '未登録')}</p><p>配達先: ${escapeHtml(order.deliveryAddress || '未登録')}</p></div>
         <div class="detail-section"><h3>注文商品</h3><div class="detail-products">${(order.products || []).map(p => { const q = p.quantity || 0; const pr = p.price || 0; return `<div class="detail-product-item"><span>${escapeHtml(p.name || '')}${p.taxType ? `（${escapeHtml(p.taxType)}${p.taxRate ? p.taxRate + '%' : ''}）` : ''}</span><span>${q}個 × ¥${pr.toLocaleString()} = ¥${(q * pr).toLocaleString()}</span></div>`; }).join('')}<div class="detail-product-item" style="font-weight: bold; border-top: 2px solid var(--border-color);"><span>合計</span><span>¥${(order.totalAmount || 0).toLocaleString()}</span></div></div></div>
         <div class="detail-section"><h3>備考</h3><p>${escapeHtml(order.notes || 'なし')}</p></div>
@@ -566,10 +872,12 @@ function editOrder(id) {
         editingOrderId = id;
 
         // 入力タブに切り替え
-        navTabs.forEach(t => t.classList.remove('active'));
-        document.querySelector('[data-tab="input"]').classList.add('active');
-        tabContents.forEach(c => c.classList.remove('active'));
-        document.getElementById('input-tab').classList.add('active');
+        switchTab('input', { scroll: 'top' });
+
+        // 前回の入力値が残らないよう、フォームを初期状態に戻してから読み込む
+        orderForm.reset();
+        document.getElementById('order-date').value = '';
+        showEditBanner(order.customerName);
 
         // フォームにデータを読み込む（安全にチェック）
         const setValueSafe = (elId, value) => {
@@ -640,8 +948,8 @@ function editOrder(id) {
             addProductRow();
         }
         updateTotal();
-
-        alert('編集モードです。変更後「保存」ボタンを押してください。');
+        // 変更の有無を判定するため、読み込み直後のフォームの状態を記録
+        editBaselineJson = JSON.stringify(getFormData());
     } catch (error) {
         console.error('編集エラー:', error);
         alert('編集中にエラーが発生しました。コンソールを確認してください。');
@@ -1105,43 +1413,6 @@ function executePrintForOrder(order, onAfterPrint) {
     window.print();
 }
 
-// 印刷実行（プレビューモーダル用・旧方式）
-function executePrint() {
-    const orders = getOrders();
-    const order = orders.find(o => o.id === currentOrderId);
-    if (!order) return;
-    executePrintForOrder(order);
-}
-
-function generatePrintHtml(order) {
-    // データの安全なアクセス
-    const products = order.products || [];
-    const departments = order.departments || [];
-
-    // 商品欄：商品名・個数・単価（税込/税抜表示）・合計金額の4列で表示
-    const productsHtml = products.length > 0
-        ? products.map(p => {
-            const taxLabel = p.taxType || '税込';
-            const taxRateLabel = p.taxRate ? `${p.taxRate}%` : '';
-            const priceDisplay = `¥${(p.price || 0).toLocaleString()}(${taxLabel}${taxRateLabel})`;
-            const subtotal = p.subtotal || (p.quantity || 0) * (p.price || 0);
-            return `<div class="print-product-item"><div>${escapeHtml(p.name || '')}</div><div>${p.quantity || 0}</div><div>${priceDisplay}</div><div>¥${subtotal.toLocaleString()}</div></div>`;
-        }).join('')
-        : '<div class="print-product-item"><div>（商品なし）</div><div>-</div><div>-</div><div>-</div></div>';
-
-    // 代金：代スミ/未収/売掛/代引からの選択を表示
-    const paymentType = order.paymentType || order.paymentMethod || '';
-    const paymentOptions = ['代スミ', '未収', '売掛', '代引'];
-    const paymentHtml = paymentOptions.map(m => `<span class="print-checkbox"><span class="print-checkbox-box">${paymentType === m ? '✓' : ''}</span><span>${m}</span></span>`).join('');
-
-    // 納品請求書：要チェックボックス
-    const invoiceHtml = `<span class="print-checkbox"><span class="print-checkbox-box">${order.invoiceRequired ? '✓' : ''}</span><span>要</span></span>`;
-
-    const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
-    // 画面表示用も印刷用（紙、Tableレイアウト）に統一する
-    return generatePrintHtmlForPaper(order);
-}
-
 // 印刷専用HTML生成（table構造で印刷に強いレイアウト）
 function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     const products = order.products || [];
@@ -1510,11 +1781,7 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
 backToListBtn.addEventListener('click', () => {
     printModal.classList.remove('active');
     // 一覧タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="list"]').classList.add('active');
-    tabContents.forEach(c => c.classList.remove('active'));
-    document.getElementById('list-tab').classList.add('active');
-    renderOrdersList();
+    switchTab('list');
 });
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
@@ -1550,6 +1817,12 @@ function loadSettingsForm() {
 }
 loadSettingsForm();
 
+// 設定画面の一番下にバージョンを表示（iPadで最新版が読み込まれているかの確認にも使う）
+(() => {
+    const el = document.getElementById('app-version');
+    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）`;
+})();
+
 settingInstagramQrInput.addEventListener('change', () => {
     const file = settingInstagramQrInput.files[0];
     if (!file) return;
@@ -1584,11 +1857,24 @@ saveSettingsBtn.addEventListener('click', () => {
 });
 
 exportBtn.addEventListener('click', () => {
-    const orders = getOrders();
-    const blob = new Blob([JSON.stringify(orders, null, 2)], { type: 'application/json' });
+    let settings = null;
+    try {
+        const rawSettings = localStorage.getItem(SETTINGS_KEY);
+        settings = rawSettings ? JSON.parse(rawSettings) : null;
+    } catch (e) { settings = null; }
+    const backup = {
+        app: 'order-form-app',
+        version: 2,
+        appVersion: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+        orders: getOrders(),
+        settings: settings,
+        customers: getCustomers()
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `order-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `order-backup-${getLocalDateString()}.json`;
     a.click();
     alert('データをエクスポートしました');
 });
@@ -1598,24 +1884,41 @@ importFile.addEventListener('change', (e) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
+        const invalidMsg = 'このファイルは注文データのバックアップではありません';
         try {
             const data = JSON.parse(event.target.result);
-            if (Array.isArray(data) && confirm(`${data.length}件のデータをインポートします。既存のデータは上書きされます。よろしいですか？`)) {
-                saveOrders(data);
-                alert('データをインポートしました');
-                renderOrdersList();
+            // 旧形式（注文の配列のみ）と新形式（オブジェクト）の両方を受け付ける
+            const isNewFormat = data !== null && typeof data === 'object' && !Array.isArray(data);
+            const orders = Array.isArray(data) ? data : (isNewFormat ? data.orders : null);
+            const validOrders = Array.isArray(orders) && orders.every(o =>
+                o !== null && typeof o === 'object' && !Array.isArray(o) &&
+                (typeof o.id === 'string' || typeof o.id === 'number'));
+            if (!validOrders) { alert(invalidMsg); return; }
+
+            const hasSettings = isNewFormat && data.settings !== null && typeof data.settings === 'object' && !Array.isArray(data.settings);
+            const hasCustomers = isNewFormat && Array.isArray(data.customers);
+            let message = `注文${orders.length}件を読み込みます。現在の注文${getOrders().length}件は上書きされます。`;
+            if (hasSettings) message += '店舗情報の設定も上書きされます。';
+            message += 'よろしいですか？';
+            if (!confirm(message)) return;
+
+            saveOrders(orders);
+            if (hasSettings) {
+                saveToStorage(SETTINGS_KEY, data.settings);
+                loadSettingsForm();
             }
+            if (hasCustomers) saveCustomers(data.customers);
+            alert('データをインポートしました');
+            renderOrdersList();
         } catch (err) { alert('ファイルの読み込みに失敗しました'); }
     };
     reader.readAsText(file);
     e.target.value = '';
 });
 
-
-
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    if (str === null || str === undefined || str === '') return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 // 日付として解釈できない値は空文字を返す。
@@ -1635,6 +1938,14 @@ function formatDateTime(dateTimeStr) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // index.html の data-icon 指定の場所に線アイコンを差し込む
+    document.querySelectorAll('[data-icon]').forEach(el => { el.outerHTML = icon(el.dataset.icon); });
+    // ブラウザにデータの永続保存を依頼（結果は使わない）
+    try {
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().catch(() => {});
+        }
+    } catch (e) { /* 未対応・失敗は無視 */ }
     initForm();
     renderOrdersList();
     // 税込/税抜切り替え時に合計を再計算
@@ -1649,14 +1960,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== お客様一覧機能 =====
 const customersList = document.getElementById('customers-list');
 const customerSearchInput = document.getElementById('customer-search-input');
-const addCustomerBtn = document.getElementById('add-customer-btn');
 
 function setupCustomerEvents() {
     if (customerSearchInput) {
         customerSearchInput.addEventListener('input', renderCustomersList);
-    }
-    if (addCustomerBtn) {
-        addCustomerBtn.addEventListener('click', showAddCustomerModal);
     }
     // ソートセレクトボックスのイベントリスナー
     const sortType = document.getElementById('customer-sort-type');
@@ -1689,12 +1996,11 @@ function renderCustomersList() {
     });
 
     let customers = Array.from(customerMap.values());
-    const searchTerm = customerSearchInput ? customerSearchInput.value.toLowerCase() : '';
+    const searchTerm = customerSearchInput ? normalizeForSearch(customerSearchInput.value) : '';
 
     // 検索フィルター
     let filtered = customers.filter(c => {
-        const name = (c.name || '').toLowerCase();
-        return name.includes(searchTerm);
+        return normalizeForSearch(c.name).includes(searchTerm);
     });
 
     // ソート処理
@@ -1716,7 +2022,7 @@ function renderCustomersList() {
     if (filtered.length === 0) {
         customersList.innerHTML = `
             <div class="empty-list">
-                <div class="empty-list-icon">👥</div>
+                <div class="empty-list-icon">${icon('users')}</div>
                 <p>${searchTerm ? '該当するお客様が見つかりません' : '注文履歴がありません'}</p>
             </div>
         `;
@@ -1730,8 +2036,8 @@ function renderCustomersList() {
                 <div class="order-card-date">最終注文: ${formatDate(customer.lastOrderDate)}</div>
             </div>
             <div class="order-card-body">
-                <div class="order-card-info">📞 ${escapeHtml(customer.phone || '未登録')}</div>
-                <div class="order-card-info">📍 ${escapeHtml(customer.address || '未登録')}</div>
+                <div class="order-card-info">${icon('phone')} ${escapeHtml(customer.phone || '未登録')}</div>
+                <div class="order-card-info">${icon('mapPin')} ${escapeHtml(customer.address || '未登録')}</div>
             </div>
             <div class="order-card-actions">
                 <button class="btn btn-primary use-customer-btn" data-name="${escapeHtml(customer.name || '')}">注文に使用</button>
@@ -1744,78 +2050,6 @@ function renderCustomersList() {
     );
 }
 
-function showAddCustomerModal() {
-    const name = prompt('お客様氏名を入力してください：');
-    if (!name) return;
-
-    const phone = prompt('電話番号を入力してください（任意）：') || '';
-    const address = prompt('住所を入力してください（任意）：') || '';
-
-    addCustomer({
-        name: name,
-        phone: phone,
-        address: address
-    });
-
-    renderCustomersList();
-    alert('お客様を登録しました。');
-}
-
-function editCustomer(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    const name = prompt('お客様氏名を入力してください：', customer.name);
-    if (name === null) return; // キャンセル
-
-    const phone = prompt('電話番号を入力してください：', customer.phone || '');
-    const address = prompt('住所を入力してください：', customer.address || '');
-
-    updateCustomer(id, {
-        name: name || customer.name,
-        phone: phone,
-        address: address
-    });
-
-    renderCustomersList();
-    alert('お客様情報を更新しました。');
-}
-
-function handleDeleteCustomer(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    if (confirm(`「${customer.name}」さんを削除しますか？\nこの操作は取り消せません。`)) {
-        deleteCustomer(id);
-        renderCustomersList();
-    }
-}
-
-function useCustomerForOrder(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    // 新規入力タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="input"]').classList.add('active');
-    tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById('input-tab').classList.add('active');
-
-    // お客様情報をフォームに入力
-    const customerNameInput = document.getElementById('customer-name');
-    const phoneInput = document.getElementById('phone-number');
-    const addressInput = document.getElementById('delivery-address');
-
-    if (customerNameInput) customerNameInput.value = customer.name || '';
-    if (phoneInput) phoneInput.value = customer.phone || '';
-    if (addressInput) addressInput.value = customer.address || '';
-
-    alert('お客様情報を注文フォームに入力しました。');
-}
-
 // 名前でお客様情報を検索してフォームに入力
 function useCustomerForOrderByName(name) {
     // 注文データから該当お客様の最新情報を取得
@@ -1823,11 +2057,11 @@ function useCustomerForOrderByName(name) {
     const customerOrder = orders.find(o => o.customerName === name);
     if (!customerOrder) return;
 
+    // 編集中だった場合は編集をやめて、必ず新規注文として開始する
+    if (editingOrderId) cancelEditMode();
+
     // 新規入力タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="input"]').classList.add('active');
-    tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById('input-tab').classList.add('active');
+    switchTab('input', { scroll: 'top' });
 
     // お客様情報をフォームに入力
     const customerNameInput = document.getElementById('customer-name');
@@ -1840,3 +2074,85 @@ function useCustomerForOrderByName(name) {
 
     alert('お客様情報を注文フォームに入力しました。');
 }
+
+// ===== モーダル表示中は背景のスクロールを固定（iOS Safari対策で position:fixed 方式） =====
+(() => {
+    const modals = document.querySelectorAll('.modal');
+    let locked = false;
+    let lockedY = 0;
+    const sync = () => {
+        const anyOpen = Array.from(modals).some(m => m.classList.contains('active'));
+        if (anyOpen === locked) return;
+        const b = document.body;
+        if (anyOpen) {
+            lockedY = window.scrollY;
+            b.classList.add('modal-open');
+            b.style.position = 'fixed';
+            b.style.top = `-${lockedY}px`;
+            b.style.left = '0';
+            b.style.right = '0';
+            b.style.width = '100%';
+        } else {
+            b.classList.remove('modal-open');
+            b.style.position = '';
+            b.style.top = '';
+            b.style.left = '';
+            b.style.right = '';
+            b.style.width = '';
+            window.scrollTo(0, lockedY);
+        }
+        locked = anyOpen;
+        updateToTop();
+    };
+    const observer = new MutationObserver(sync);
+    modals.forEach(m => observer.observe(m, { attributes: true, attributeFilter: ['class'] }));
+
+    // ===== 「▲ 上へ」ボタン（一定量スクロールしたときだけ表示） =====
+    const toTopBtn = document.createElement('button');
+    toTopBtn.type = 'button';
+    toTopBtn.className = 'scroll-top-btn';
+    toTopBtn.hidden = true;
+    toTopBtn.setAttribute('aria-label', 'ページの上へ戻る');
+    toTopBtn.innerHTML = `${icon('arrowUp')} 上へ`;
+    document.body.appendChild(toTopBtn);
+    toTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    function updateToTop() {
+        // モーダル表示中は隠す（固定中は scrollY が 0 になるため判定もここで）
+        toTopBtn.hidden = locked || window.scrollY <= 600;
+    }
+    window.addEventListener('scroll', updateToTop, { passive: true });
+    updateToTop();
+})();
+
+// ===== 日付依存ラベルの自動更新（iPadを開きっぱなしでも最新に） =====
+function refreshTimeSensitiveViews() {
+    if (document.querySelector('.modal.active')) return;
+    const active = Array.from(tabContents).find(c => c.classList.contains('active'));
+    if (!active) return;
+    const tab = active.id.replace(/-tab$/, '');
+    if (tab !== 'summary' && tab !== 'list') return;
+    const ae = document.activeElement;
+    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName) && active.contains(ae)) return;
+    const y = getPageScrollY();
+    if (tab === 'summary') {
+        const wasOpen = document.querySelector('details.summary-past')?.open || false;
+        renderSummaryList();
+        const d = document.querySelector('details.summary-past');
+        if (d && wasOpen) d.open = true;
+    } else {
+        renderOrdersList();
+    }
+    window.scrollTo(0, y);
+}
+(() => {
+    const minuteKey = () => {
+        const n = new Date();
+        const p = (v) => String(v).padStart(2, '0');
+        return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}T${p(n.getHours())}:${p(n.getMinutes())}`;
+    };
+    let lastRenderMinuteKey = minuteKey();
+    const refresh = () => { refreshTimeSensitiveViews(); lastRenderMinuteKey = minuteKey(); };
+    setInterval(() => { if (minuteKey() !== lastRenderMinuteKey) refresh(); }, 30000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+    window.addEventListener('focus', refresh);
+})();

@@ -1,18 +1,23 @@
 /* ===== CSS Variables ===== */
 :root {
-  --primary-color: #4F46E5;
-  --primary-hover: #4338CA;
-  --secondary-color: #6B7280;
-  --success-color: #10B981;
-  --danger-color: #EF4444;
-  --warning-color: #F59E0B;
-  --bg-color: #FFFFFF;
-  --bg-secondary: #F8FAFC;
-  --bg-tertiary: #E2E8F0;
-  --text-primary: #000000;
-  --text-secondary: #333333;
-  --border-color: #CBD5E1;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --primary-color: #1F5A36;
+  --primary-hover: #174429;
+  --primary-soft: #E3EFE6;
+  --secondary-color: #3F4B43;
+  --success-color: #1F5A36;
+  --done-bg: #DCEBDF;
+  --done-text: #23543A;
+  --danger-color: #A93226;
+  --warning-color: #8F5200;
+  --overdue-color: #3A403C;
+  --bg-color: #F6F8F5;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E4EAE3;
+  --text-primary: #0F1712;
+  --text-secondary: #2C3830;
+  --border-color: #CFD9CF;
+  --focus-ring: 0 0 0 3px rgba(31, 90, 54, 0.35);
+  --shadow: 0 1px 3px rgba(30, 42, 34, 0.08), 0 1px 2px rgba(30, 42, 34, 0.04);
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -68,9 +73,8 @@ body {
 }
 
 .nav-tab.active {
-  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  background: var(--primary-color);
   color: white;
-  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
 }
 
 .nav-tab:not(.active):hover {
@@ -146,13 +150,12 @@ textarea,
 select {
   width: 100%;
   padding: 14px 16px;
-  background: var(--bg-color);
+  background: var(--bg-secondary);
   border: 2px solid var(--primary-color);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 1rem;
   transition: all 0.3s ease;
-  box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
 }
 
 input:focus,
@@ -160,8 +163,8 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 20px rgba(79, 70, 229, 0.2);
-  background: var(--bg-color);
+  box-shadow: var(--focus-ring);
+  background: var(--bg-secondary);
 }
 
 /* ご注文日時のグループ */
@@ -182,8 +185,8 @@ select:focus {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.7;
+  color: #5F6A63;
+  opacity: 1;
 }
 
 textarea {
@@ -264,7 +267,7 @@ textarea {
 .radio-label:has(input:checked),
 .checkbox-label:has(input:checked) {
   border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.15);
+  background: var(--primary-soft);
 }
 
 .radio-label span,
@@ -349,13 +352,14 @@ textarea {
 }
 
 .product-tax-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--secondary-color);
   white-space: nowrap;
 }
 
 .product-tax-type,
 .product-tax-rate {
+  min-height: 44px;
   padding: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -393,6 +397,8 @@ textarea {
 }
 
 .remove-product-btn {
+  min-width: 44px;
+  min-height: 44px;
   width: 36px;
   height: 36px;
   display: flex;
@@ -408,8 +414,7 @@ textarea {
 }
 
 .remove-product-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  /* 拡大はしない（落ち着いた動きに統一） */
 }
 
 .add-product-btn {
@@ -427,7 +432,7 @@ textarea {
 .add-product-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.1);
+  background: var(--primary-soft);
 }
 
 .total-display {
@@ -437,7 +442,7 @@ textarea {
   gap: 16px;
   margin-top: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  background: var(--primary-color);
   border-radius: var(--radius-sm);
   font-size: 1.2rem;
   font-weight: bold;
@@ -459,14 +464,12 @@ textarea {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), #7C3AED);
+  background: var(--primary-color);
   color: white;
-  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+  background: var(--primary-hover);
 }
 
 .btn-secondary {
@@ -477,7 +480,7 @@ textarea {
 
 .btn-secondary:hover {
   border-color: var(--primary-color);
-  background: rgba(79, 70, 229, 0.1);
+  background: var(--primary-soft);
 }
 
 .btn-danger {
@@ -486,7 +489,7 @@ textarea {
 }
 
 .btn-danger:hover {
-  background: #DC2626;
+  background: #8E2A20;
 }
 
 .btn.full-width {
@@ -553,13 +556,19 @@ textarea {
 }
 
 .order-card:hover {
-  transform: translateX(4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  /* 横にずらす動きはしない */
+  box-shadow: var(--shadow);
 }
 
 .order-card.processed {
-  border-left-color: var(--success-color);
-  opacity: 0.8;
+  border-left-color: #9DB5A4;
+  border-left-width: 6px;
+  background: #F3F7F3;
+}
+
+.order-card-processed-at {
+  color: var(--success-color);
+  font-weight: 600;
 }
 
 .order-card-header {
@@ -598,20 +607,21 @@ textarea {
 
 .order-card-status {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .order-card-status.pending {
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--warning-color);
+  background: var(--warning-color);
+  color: #fff;
 }
 
 .order-card-status.completed {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--success-color);
+  background: var(--done-bg);
+  color: var(--done-text);
 }
 
 .order-card-actions {
@@ -812,7 +822,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid var(--bg-color);
+  border-bottom: 1px solid var(--bg-tertiary);
 }
 
 .detail-product-item:last-child {
@@ -1263,7 +1273,7 @@ textarea {
 /* モバイル向けレスポンシブ (767px以下) */
 @media (max-width: 767px) {
   html {
-    font-size: 15px;
+    font-size: 17px;
   }
 
   .app-container {
@@ -1279,6 +1289,7 @@ textarea {
   }
 
   .nav-tab {
+    min-height: 44px;
     flex: 1 0 auto;
     padding: 10px 8px;
     font-size: 0.75rem;
@@ -1790,3 +1801,143 @@ textarea {
   margin-right: 3px;
   vertical-align: middle;
 }
+
+/* 編集中バナー（画面表示のみ） */
+.edit-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #FFF6DB;
+    border: 1px solid #E8CF7A;
+    border-radius: 8px;
+    font-weight: bold;
+    /* スクロールしても上部のタブのすぐ下に表示し続ける（タブの高さはJSで --nav-sticky-bottom に設定） */
+    position: sticky;
+    top: var(--nav-sticky-bottom, 0px);
+    z-index: 99;
+    box-shadow: var(--shadow);
+}
+.edit-banner[hidden] { display: none; }
+.edit-banner-btn { white-space: nowrap; flex-shrink: 0; }
+
+/* ===== スクロール関連 ===== */
+/* モーダル表示中は背景を固定（JSで position:fixed も併用） */
+body.modal-open { overflow: hidden; }
+.modal { overscroll-behavior: contain; }
+.modal-content { overscroll-behavior: contain; }
+
+/* 「▲ 上へ」ボタン */
+.scroll-top-btn {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 900;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.scroll-top-btn:active { background: var(--primary-hover); }
+.scroll-top-btn[hidden] { display: none; }
+@media print {
+  .scroll-top-btn { display: none !important; }
+  /* 印刷はプレビュー（モーダル）を開いたまま行うため、背景固定（position:fixed）を
+     印刷時は解除する。解除しないと1ページ目しか印刷されない */
+  body.modal-open {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+}
+
+/* 設定画面の一番下のバージョン表示 */
+.app-version {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+@media print {
+  .app-version { display: none; }
+}
+
+/* ===== 詳細カード（v1.2） ===== */
+.order-card-header { gap: 8px; }
+.order-card-header-main { flex: 1 1 auto; min-width: 0; }
+.order-card-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 0 0 auto; }
+.order-card-pickup { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; overflow-wrap: anywhere; }
+.order-card-pickup-unset { font-size: 0.95rem; font-weight: 400; color: var(--secondary-color); }
+/* 「受け取り」は日時より小さく、改行されても単語の途中で切れないようにする */
+.order-card-pickup-label { font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+.order-card-nameline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.order-card-nameline .order-card-title { overflow-wrap: anywhere; min-width: 0; }
+.order-card-phone { font-weight: 400; color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap; }
+.order-card-due { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.order-card-due.due-today { background: var(--danger-color); color: #fff; }
+.order-card-due.due-tomorrow { background: var(--primary-soft); color: var(--primary-color); border: 2px solid var(--primary-color); padding: 4px 12px; }
+.order-card-due.due-overdue { background: var(--overdue-color); color: #fff; }
+.order-card-products, .order-card-depts, .order-card-info, .order-card-notes { min-width: 0; overflow-wrap: anywhere; }
+.order-card-products { font-size: 1rem; font-weight: 600; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.order-card-depts { font-size: 0.9rem; color: var(--text-secondary); }
+.order-card-notes { font-size: 0.9rem; background: #FFF6DB; border-radius: var(--radius-sm); padding: 6px 10px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.order-card-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; color: var(--text-secondary); align-items: baseline; margin-top: 8px; }
+.order-card-meta .order-card-amount { font-size: 1rem; }
+
+/* ===== 注文一覧（受け取り予定表 v1.4） ===== */
+.summary-group-header { margin-top: 20px; padding: 8px 12px; font-size: 1.1rem; font-weight: 700; background: var(--bg-secondary); border-radius: var(--radius-sm); color: var(--text-primary); }
+.summary-group-header:first-child { margin-top: 0; }
+.summary-day-tag { display: inline-block; margin-left: 2px; padding: 1px 8px; border-radius: 999px; background: var(--primary-color); color: #fff; font-size: 0.85rem; font-weight: 700; }
+.summary-row { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) minmax(0, 1.4fr) 2em 8.5em; /* 状態欄は固定幅にして行ごとに列がずれないようにする */ gap: 8px 12px; align-items: center; padding: 12px; min-height: 48px; border-bottom: 1px solid var(--bg-tertiary); cursor: pointer; }
+.summary-row:hover, .summary-row:active { background: var(--bg-secondary); }
+.summary-row.is-done { background: #EEF2ED; /* 処理済みは背景で区別（文字は薄くしない） */ }
+.summary-row.is-done .summary-time, .summary-row.is-done .summary-name, .summary-row.is-done .summary-products { color: var(--text-secondary); }
+.summary-name { font-weight: 600; }
+.summary-time { font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary-time, .summary-name, .summary-products, .summary-method { min-width: 0; }
+.summary-name, .summary-products { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary-method { text-align: center; }
+.summary-status { display: flex; align-items: center; gap: 6px; white-space: nowrap; justify-content: flex-end; }
+.summary-pill, .summary-overdue { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; color: #fff; white-space: nowrap; }
+.summary-overdue { background: var(--overdue-color); }
+.summary-pill.pending { background: var(--warning-color); }
+.summary-pill.done { background: var(--done-bg); color: var(--done-text); }
+.summary-group-overdue { background: #FBE9E7; color: #9E2A1F; border-left: 4px solid var(--danger-color); }
+.summary-date { display: block; font-size: 0.8rem; font-weight: 600; color: var(--danger-color); white-space: nowrap; }
+.summary-past > summary { padding: 12px; margin-top: 16px; cursor: pointer; font-weight: 600; background: var(--bg-tertiary); border-radius: var(--radius-sm); }
+@media (max-width: 600px) {
+  /* 状態欄は名前の行だけ、注文内容は2行目の右側（状態欄の下）まで使う。
+     名前・注文内容は途中で切らず2行まで折り返す（高齢の方にも読みやすく） */
+  .summary-row { grid-template-columns: 3.6em minmax(0, 1fr) auto 1.6em; grid-template-areas: "time name status status" "time products products method"; }
+  .summary-name, .summary-products { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+  .summary-method { justify-self: end; }
+  .summary-time { grid-area: time; }
+  .summary-name { grid-area: name; }
+  .summary-products { grid-area: products; }
+  .summary-method { grid-area: method; text-align: right; }
+  .summary-status { grid-area: status; }
+}
+
+/* ===== アイコン ===== */
+.icon { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex-shrink: 0; display: inline-block; }
+.icon-warn { color: #9A5B00; }
+.icon-muted { color: var(--text-secondary); }
+.empty-list-icon .icon { width: 48px; height: 48px; stroke-width: 1.5; color: var(--text-secondary); }
+
+/* 注文一覧の日付見出し：今日は赤、明日は緑の枠（詳細カードのバッジと同じ考え方） */
+.summary-day-tag.is-today { background: var(--danger-color); color: #fff; }
+.summary-day-tag.is-tomorrow { background: var(--primary-soft); color: var(--primary-color); box-shadow: inset 0 0 0 2px var(--primary-color); }
+
+#setting-instagram-qr { min-height: 44px; font-size: 1rem; }

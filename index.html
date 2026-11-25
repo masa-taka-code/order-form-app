@@ -57,7 +57,7 @@
           <h2 class="section-title">お客様情報</h2>
           <div class="form-grid">
             <div class="form-group full-width">
-              <label for="customer-name">お客様氏名 <span style="font-size: 0.85em; color: #888;">(カタカナ入力)</span></label>
+              <label for="customer-name">お客様氏名 <span style="font-size: 0.8rem; color: var(--secondary-color);">(カタカナ入力)</span></label>
               <input type="text" id="customer-name" name="customerName" placeholder="ヤマダ　タロウ" required>
             </div>
             <div class="form-group">
@@ -306,17 +306,18 @@
         <h2>データ管理</h2>
         <div class="settings-section">
           <button id="export-btn" class="btn btn-secondary full-width">
-            📥 データをエクスポート（バックアップ）
+            <span data-icon="download"></span> データをエクスポート（バックアップ）
           </button>
           <p class="settings-description">保存されているすべてのデータをJSONファイルとしてダウンロードします。</p>
         </div>
         <div class="settings-section">
           <label for="import-file" class="btn btn-secondary full-width">
-            📤 データをインポート（復元）
+            <span data-icon="upload"></span> データをインポート（復元）
           </label>
           <input type="file" id="import-file" accept=".json" style="display: none;">
           <p class="settings-description">以前エクスポートしたJSONファイルからデータを復元します。</p>
         </div>
+        <p id="app-version" class="app-version"></p>
       </div>
     </div>
 
@@ -332,7 +333,7 @@
         </div>
         <div class="modal-actions">
           <button id="back-to-list-btn" class="btn btn-secondary">一覧に戻る</button>
-          <button id="download-pdf-btn" class="btn btn-primary">🖨️ 印刷</button>
+          <button id="download-pdf-btn" class="btn btn-primary"><span data-icon="printer"></span> 印刷</button>
         </div>
       </div>
     </div>
