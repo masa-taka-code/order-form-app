@@ -84,32 +84,6 @@ function saveCustomers(customers) {
     saveToStorage(CUSTOMER_STORAGE_KEY, customers);
 }
 
-function addCustomer(customer) {
-    const customers = getCustomers();
-    customer.id = Date.now().toString();
-    customer.createdAt = new Date().toISOString();
-    customers.unshift(customer);
-    saveCustomers(customers);
-    return customer;
-}
-
-function updateCustomer(id, updatedData) {
-    const customers = getCustomers();
-    const index = customers.findIndex(c => c.id === id);
-    if (index !== -1) {
-        customers[index] = { ...customers[index], ...updatedData };
-        saveCustomers(customers);
-        return customers[index];
-    }
-    return null;
-}
-
-function deleteCustomer(id) {
-    const customers = getCustomers();
-    const filtered = customers.filter(c => c.id !== id);
-    saveCustomers(filtered);
-}
-
 // DOM Elements
 const navTabs = document.querySelectorAll('.nav-tab');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -138,6 +112,8 @@ const customerNameInput = document.getElementById('customer-name');
 navTabs.forEach(tab => {
     tab.addEventListener('click', () => {
         const tabName = tab.dataset.tab;
+        // 編集中に入力タブ以外へ移動した場合は編集をやめる（未保存の編集内容は破棄）
+        if (editingOrderId && tabName !== 'input') cancelEditMode();
         navTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         tabContents.forEach(content => {
@@ -250,8 +226,16 @@ function updateTotal() {
 
 addProductBtn.addEventListener('click', addProductRow);
 
+// 端末のローカル日付をYYYY-MM-DDで返す（toISOStringはUTC基準で日本の午前9時前に前日になるため）
+function getLocalDateString(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 function initForm() {
-    document.getElementById('reception-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('reception-date').value = getLocalDateString();
     productsContainer.innerHTML = '';
     addProductRow();
     updateTotal();
@@ -354,6 +338,39 @@ function getFormData() {
 // 編集中の注文ID（新規の場合はnull）
 let editingOrderId = null;
 
+// 編集中バナー（入力フォームの上に表示）
+const editBanner = document.createElement('div');
+editBanner.className = 'edit-banner';
+editBanner.hidden = true;
+const editBannerText = document.createElement('span');
+editBannerText.className = 'edit-banner-text';
+const editBannerCancelBtn = document.createElement('button');
+editBannerCancelBtn.type = 'button';
+editBannerCancelBtn.className = 'btn btn-secondary edit-banner-btn';
+editBannerCancelBtn.textContent = '編集をやめる';
+editBanner.appendChild(editBannerText);
+editBanner.appendChild(editBannerCancelBtn);
+orderForm.parentNode.insertBefore(editBanner, orderForm);
+editBannerCancelBtn.addEventListener('click', () => cancelEditMode());
+
+function showEditBanner(customerName) {
+    editBannerText.textContent = `✏️ 編集中：${customerName || ''} の注文`;
+    editBanner.hidden = false;
+}
+
+function hideEditBanner() {
+    editBanner.hidden = true;
+    editBannerText.textContent = '';
+}
+
+// 編集モードを解除してフォームを新規入力の状態に戻す
+function cancelEditMode() {
+    editingOrderId = null;
+    orderForm.reset();
+    initForm();
+    hideEditBanner();
+}
+
 orderForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = getFormData();
@@ -362,9 +379,25 @@ orderForm.addEventListener('submit', (e) => {
 
     if (editingOrderId) {
         // 編集モード：既存の注文を更新
-        updateOrder(editingOrderId, data);
-        alert('注文を更新しました！');
+        const stored = getOrders().find(o => o.id === editingOrderId);
+        const update = { ...data };
+        let message = '注文を更新しました！';
+        if (stored && stored.isPrinted) {
+            // 印刷物の内容が変わっていたら「未印刷」に戻す（印刷済みの紙と内容がずれるため）。
+            // 保存データの項目同士を比べると、古い形式で保存された注文で
+            // 何も変えていなくても「変更あり」と誤判定するため、印刷物そのものを比べる
+            const updated = { ...stored, ...update };
+            const printedPaper = o => generateCustomerCopyHtml(o) + generatePrintHtmlForPaper(o) + generatePrintHtmlForPaper(o, '部門控え');
+            const changed = printedPaper(stored) !== printedPaper(updated);
+            if (changed) {
+                update.isPrinted = false;
+                message = '注文を更新しました！\n内容が変わったため「未印刷」に戻しました。再印刷してください。';
+            }
+        }
+        updateOrder(editingOrderId, update);
+        alert(message);
         editingOrderId = null;
+        hideEditBanner();
     } else {
         // 新規モード
         addOrder(data);
@@ -376,9 +409,7 @@ orderForm.addEventListener('submit', (e) => {
 
 clearFormBtn.addEventListener('click', () => {
     if (confirm('入力内容をクリアしますか？')) {
-        orderForm.reset();
-        initForm();
-        editingOrderId = null;
+        cancelEditMode();
     }
 });
 
@@ -399,10 +430,10 @@ function renderOrdersList() {
     }
 
     ordersList.innerHTML = filtered.map(order => `
-        <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${order.id}">
+        <div class="order-card ${order.status === '処理済み' ? 'processed' : ''}" data-id="${escapeHtml(String(order.id))}">
             <div class="order-card-header">
                 <div><div class="order-card-title">${escapeHtml(order.customerName)}</div><div class="order-card-date">${formatDate(order.receptionDate)}</div></div>
-                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${order.status}</span>
+                <span class="order-card-status ${order.status === '処理済み' ? 'completed' : 'pending'}">${escapeHtml(order.status)}</span>
             </div>
             <div class="order-card-body">
                 <div class="order-card-info">${order.isPrinted ? '🖨️ 印刷済み' : '📄 未印刷'}</div>
@@ -411,11 +442,11 @@ function renderOrdersList() {
                 <div class="order-card-amount">合計: ¥${(order.totalAmount || 0).toLocaleString()}</div>
             </div>
             <div class="order-card-actions">
-                <button class="btn btn-secondary view-btn" data-id="${order.id}">詳細</button>
-                <button class="btn btn-secondary edit-btn" data-id="${order.id}">編集</button>
-                <button class="btn btn-secondary print-preview-btn" data-id="${order.id}">印刷</button>
-                <button class="btn btn-primary toggle-status-btn" data-id="${order.id}">${order.status === '処理済み' ? '未処理に戻す' : '処理済みにする'}</button>
-                <button class="btn btn-danger delete-btn" data-id="${order.id}">削除</button>
+                <button class="btn btn-secondary view-btn" data-id="${escapeHtml(String(order.id))}">詳細</button>
+                <button class="btn btn-secondary edit-btn" data-id="${escapeHtml(String(order.id))}">編集</button>
+                <button class="btn btn-secondary print-preview-btn" data-id="${escapeHtml(String(order.id))}">印刷</button>
+                <button class="btn btn-primary toggle-status-btn" data-id="${escapeHtml(String(order.id))}">${order.status === '処理済み' ? '未処理に戻す' : '処理済みにする'}</button>
+                <button class="btn btn-danger delete-btn" data-id="${escapeHtml(String(order.id))}">削除</button>
             </div>
         </div>
     `).join('');
@@ -451,7 +482,7 @@ function renderSummaryList() {
         const products = order.products?.map(p => p.name).join(', ') || '（商品なし）';
 
         return `
-            <div class="summary-item" data-id="${order.id}">
+            <div class="summary-item" data-id="${escapeHtml(String(order.id))}">
                 <span class="summary-item-date">${date}</span>
                 <span class="summary-item-name">${escapeHtml(name)}</span>
                 <span class="summary-item-products">${escapeHtml(products)}</span>
@@ -571,6 +602,11 @@ function editOrder(id) {
         tabContents.forEach(c => c.classList.remove('active'));
         document.getElementById('input-tab').classList.add('active');
 
+        // 前回の入力値が残らないよう、フォームを初期状態に戻してから読み込む
+        orderForm.reset();
+        document.getElementById('order-date').value = '';
+        showEditBanner(order.customerName);
+
         // フォームにデータを読み込む（安全にチェック）
         const setValueSafe = (elId, value) => {
             const el = document.getElementById(elId);
@@ -640,8 +676,6 @@ function editOrder(id) {
             addProductRow();
         }
         updateTotal();
-
-        alert('編集モードです。変更後「保存」ボタンを押してください。');
     } catch (error) {
         console.error('編集エラー:', error);
         alert('編集中にエラーが発生しました。コンソールを確認してください。');
@@ -1105,43 +1139,6 @@ function executePrintForOrder(order, onAfterPrint) {
     window.print();
 }
 
-// 印刷実行（プレビューモーダル用・旧方式）
-function executePrint() {
-    const orders = getOrders();
-    const order = orders.find(o => o.id === currentOrderId);
-    if (!order) return;
-    executePrintForOrder(order);
-}
-
-function generatePrintHtml(order) {
-    // データの安全なアクセス
-    const products = order.products || [];
-    const departments = order.departments || [];
-
-    // 商品欄：商品名・個数・単価（税込/税抜表示）・合計金額の4列で表示
-    const productsHtml = products.length > 0
-        ? products.map(p => {
-            const taxLabel = p.taxType || '税込';
-            const taxRateLabel = p.taxRate ? `${p.taxRate}%` : '';
-            const priceDisplay = `¥${(p.price || 0).toLocaleString()}(${taxLabel}${taxRateLabel})`;
-            const subtotal = p.subtotal || (p.quantity || 0) * (p.price || 0);
-            return `<div class="print-product-item"><div>${escapeHtml(p.name || '')}</div><div>${p.quantity || 0}</div><div>${priceDisplay}</div><div>¥${subtotal.toLocaleString()}</div></div>`;
-        }).join('')
-        : '<div class="print-product-item"><div>（商品なし）</div><div>-</div><div>-</div><div>-</div></div>';
-
-    // 代金：代スミ/未収/売掛/代引からの選択を表示
-    const paymentType = order.paymentType || order.paymentMethod || '';
-    const paymentOptions = ['代スミ', '未収', '売掛', '代引'];
-    const paymentHtml = paymentOptions.map(m => `<span class="print-checkbox"><span class="print-checkbox-box">${paymentType === m ? '✓' : ''}</span><span>${m}</span></span>`).join('');
-
-    // 納品請求書：要チェックボックス
-    const invoiceHtml = `<span class="print-checkbox"><span class="print-checkbox-box">${order.invoiceRequired ? '✓' : ''}</span><span>要</span></span>`;
-
-    const deptList = ['青果', '精肉', '鮮魚', '惣菜', '日配'];
-    // 画面表示用も印刷用（紙、Tableレイアウト）に統一する
-    return generatePrintHtmlForPaper(order);
-}
-
 // 印刷専用HTML生成（table構造で印刷に強いレイアウト）
 function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
     const products = order.products || [];
@@ -1584,11 +1581,23 @@ saveSettingsBtn.addEventListener('click', () => {
 });
 
 exportBtn.addEventListener('click', () => {
-    const orders = getOrders();
-    const blob = new Blob([JSON.stringify(orders, null, 2)], { type: 'application/json' });
+    let settings = null;
+    try {
+        const rawSettings = localStorage.getItem(SETTINGS_KEY);
+        settings = rawSettings ? JSON.parse(rawSettings) : null;
+    } catch (e) { settings = null; }
+    const backup = {
+        app: 'order-form-app',
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        orders: getOrders(),
+        settings: settings,
+        customers: getCustomers()
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `order-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `order-backup-${getLocalDateString()}.json`;
     a.click();
     alert('データをエクスポートしました');
 });
@@ -1598,24 +1607,41 @@ importFile.addEventListener('change', (e) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
+        const invalidMsg = 'このファイルは注文データのバックアップではありません';
         try {
             const data = JSON.parse(event.target.result);
-            if (Array.isArray(data) && confirm(`${data.length}件のデータをインポートします。既存のデータは上書きされます。よろしいですか？`)) {
-                saveOrders(data);
-                alert('データをインポートしました');
-                renderOrdersList();
+            // 旧形式（注文の配列のみ）と新形式（オブジェクト）の両方を受け付ける
+            const isNewFormat = data !== null && typeof data === 'object' && !Array.isArray(data);
+            const orders = Array.isArray(data) ? data : (isNewFormat ? data.orders : null);
+            const validOrders = Array.isArray(orders) && orders.every(o =>
+                o !== null && typeof o === 'object' && !Array.isArray(o) &&
+                (typeof o.id === 'string' || typeof o.id === 'number'));
+            if (!validOrders) { alert(invalidMsg); return; }
+
+            const hasSettings = isNewFormat && data.settings !== null && typeof data.settings === 'object' && !Array.isArray(data.settings);
+            const hasCustomers = isNewFormat && Array.isArray(data.customers);
+            let message = `注文${orders.length}件を読み込みます。現在の注文${getOrders().length}件は上書きされます。`;
+            if (hasSettings) message += '店舗情報の設定も上書きされます。';
+            message += 'よろしいですか？';
+            if (!confirm(message)) return;
+
+            saveOrders(orders);
+            if (hasSettings) {
+                saveToStorage(SETTINGS_KEY, data.settings);
+                loadSettingsForm();
             }
+            if (hasCustomers) saveCustomers(data.customers);
+            alert('データをインポートしました');
+            renderOrdersList();
         } catch (err) { alert('ファイルの読み込みに失敗しました'); }
     };
     reader.readAsText(file);
     e.target.value = '';
 });
 
-
-
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    if (str === null || str === undefined || str === '') return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 // 日付として解釈できない値は空文字を返す。
@@ -1635,6 +1661,12 @@ function formatDateTime(dateTimeStr) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ブラウザにデータの永続保存を依頼（結果は使わない）
+    try {
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().catch(() => {});
+        }
+    } catch (e) { /* 未対応・失敗は無視 */ }
     initForm();
     renderOrdersList();
     // 税込/税抜切り替え時に合計を再計算
@@ -1649,14 +1681,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== お客様一覧機能 =====
 const customersList = document.getElementById('customers-list');
 const customerSearchInput = document.getElementById('customer-search-input');
-const addCustomerBtn = document.getElementById('add-customer-btn');
 
 function setupCustomerEvents() {
     if (customerSearchInput) {
         customerSearchInput.addEventListener('input', renderCustomersList);
-    }
-    if (addCustomerBtn) {
-        addCustomerBtn.addEventListener('click', showAddCustomerModal);
     }
     // ソートセレクトボックスのイベントリスナー
     const sortType = document.getElementById('customer-sort-type');
@@ -1744,84 +1772,15 @@ function renderCustomersList() {
     );
 }
 
-function showAddCustomerModal() {
-    const name = prompt('お客様氏名を入力してください：');
-    if (!name) return;
-
-    const phone = prompt('電話番号を入力してください（任意）：') || '';
-    const address = prompt('住所を入力してください（任意）：') || '';
-
-    addCustomer({
-        name: name,
-        phone: phone,
-        address: address
-    });
-
-    renderCustomersList();
-    alert('お客様を登録しました。');
-}
-
-function editCustomer(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    const name = prompt('お客様氏名を入力してください：', customer.name);
-    if (name === null) return; // キャンセル
-
-    const phone = prompt('電話番号を入力してください：', customer.phone || '');
-    const address = prompt('住所を入力してください：', customer.address || '');
-
-    updateCustomer(id, {
-        name: name || customer.name,
-        phone: phone,
-        address: address
-    });
-
-    renderCustomersList();
-    alert('お客様情報を更新しました。');
-}
-
-function handleDeleteCustomer(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    if (confirm(`「${customer.name}」さんを削除しますか？\nこの操作は取り消せません。`)) {
-        deleteCustomer(id);
-        renderCustomersList();
-    }
-}
-
-function useCustomerForOrder(id) {
-    const customers = getCustomers();
-    const customer = customers.find(c => c.id === id);
-    if (!customer) return;
-
-    // 新規入力タブに切り替え
-    navTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="input"]').classList.add('active');
-    tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById('input-tab').classList.add('active');
-
-    // お客様情報をフォームに入力
-    const customerNameInput = document.getElementById('customer-name');
-    const phoneInput = document.getElementById('phone-number');
-    const addressInput = document.getElementById('delivery-address');
-
-    if (customerNameInput) customerNameInput.value = customer.name || '';
-    if (phoneInput) phoneInput.value = customer.phone || '';
-    if (addressInput) addressInput.value = customer.address || '';
-
-    alert('お客様情報を注文フォームに入力しました。');
-}
-
 // 名前でお客様情報を検索してフォームに入力
 function useCustomerForOrderByName(name) {
     // 注文データから該当お客様の最新情報を取得
     const orders = getOrders();
     const customerOrder = orders.find(o => o.customerName === name);
     if (!customerOrder) return;
+
+    // 編集中だった場合は編集をやめて、必ず新規注文として開始する
+    if (editingOrderId) cancelEditMode();
 
     // 新規入力タブに切り替え
     navTabs.forEach(t => t.classList.remove('active'));

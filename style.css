@@ -1790,3 +1790,18 @@ textarea {
   margin-right: 3px;
   vertical-align: middle;
 }
+
+/* 編集中バナー（画面表示のみ） */
+.edit-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #fff4c2;
+    border: 1px solid #e6c84c;
+    border-radius: 8px;
+    font-weight: bold;
+}
+.edit-banner[hidden] { display: none; }
