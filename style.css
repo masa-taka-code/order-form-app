@@ -1908,6 +1908,8 @@ body.modal-open { overflow: hidden; }
 .summary-overdue { background: #374151; }
 .summary-pill.pending { background: var(--warning-color); }
 .summary-pill.done { background: var(--success-color); }
+.summary-group-overdue { background: #FEE2E2; color: #B91C1C; color: color-mix(in srgb, var(--danger-color) 75%, #000); border-left: 4px solid var(--danger-color); }
+.summary-date { display: block; font-size: .75rem; font-weight: 600; color: var(--danger-color); white-space: nowrap; }
 .summary-past > summary { padding: 12px; margin-top: 16px; cursor: pointer; font-weight: 600; background: var(--bg-tertiary); border-radius: var(--radius-sm); }
 @media (max-width: 600px) {
   .summary-row { grid-template-columns: 4em minmax(0, 1fr) 7.5em; grid-template-areas: "time name status" "time products method"; }

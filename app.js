@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const APP_UPDATED = '2026-11-25';
 
 const STORAGE_KEY = 'orderFormAppData';
@@ -617,9 +617,13 @@ function renderSummaryList() {
         if (p) dated.push({ o, p }); else unset.push(o);
     });
 
+    const isDone = (o) => o.status === '処理済み';
     const byTime = (a, b) => a.p.key.localeCompare(b.p.key);
     const upcoming = dated.filter(x => x.p.date >= todayStr).sort(byTime);
-    const past = dated.filter(x => x.p.date < todayStr).sort(byTime);
+    const pastAll = dated.filter(x => x.p.date < todayStr).sort(byTime);
+    // 受け取り日を過ぎた未処理は常時表示、処理済みのみ折りたたみ
+    const overduePast = pastAll.filter(x => !isDone(x.o));
+    const past = pastAll.filter(x => isDone(x.o));
 
     const groupByDate = (list, desc) => {
         const map = new Map();
@@ -632,16 +636,19 @@ function renderSummaryList() {
         return dates.map(date => ({ date, items: map.get(date) }));
     };
 
-    const isDone = (o) => o.status === '処理済み';
     const countText = (items, getOrder) => {
         const u = items.filter(x => !isDone(getOrder(x))).length;
         return `${items.length}件${u > 0 ? `（未処理 ${u}）` : ''}`;
     };
 
-    const renderRow = (o, p) => {
+    const renderRow = (o, p, stacked) => {
         const done = isDone(o);
-        const time = p ? `${p.h}:${p.mi}` : '--';
-        const overdue = p && !done && p.date === todayStr && p.key < nowKey;
+        let time = p ? `${p.h}:${p.mi}` : '--';
+        if (stacked && p) {
+            const wdp = weekdays[new Date(p.y, p.mo - 1, p.d).getDay()];
+            time = `<span class="summary-date">${p.mo}/${p.d}(${wdp})</span><span>${time}</span>`;
+        }
+        const overdue = p && !done && (stacked || (p.date === todayStr && p.key < nowKey));
         const name = o.customerName || '（名前なし）';
         const prods = Array.isArray(o.products) ? o.products.filter(Boolean) : [];
         let prodText = '（商品なし）';
@@ -682,7 +689,12 @@ function renderSummaryList() {
 
     const renderDateGroup = (g) => dateHeader(g.date, g.items) + g.items.map(x => renderRow(x.o, x.p)).join('');
 
-    let html = groupByDate(upcoming, false).map(renderDateGroup).join('');
+    let html = '';
+    if (overduePast.length > 0) {
+        html += `<div class="summary-group-header summary-group-overdue">⚠️ 受け取り日を過ぎた未処理 ・ ${overduePast.length}件</div>`
+            + overduePast.map(x => renderRow(x.o, x.p, true)).join('');
+    }
+    html += groupByDate(upcoming, false).map(renderDateGroup).join('');
 
     if (unset.length > 0) {
         unset.sort((a, b) => {
@@ -697,7 +709,7 @@ function renderSummaryList() {
     }
 
     if (past.length > 0) {
-        html += `<details class="summary-past"><summary>過去の注文（${past.length}件）</summary>`
+        html += `<details class="summary-past"><summary>過去の処理済み（${past.length}件）</summary>`
             + groupByDate(past, true).map(renderDateGroup).join('')
             + `</details>`;
     }
