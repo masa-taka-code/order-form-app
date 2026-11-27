@@ -2062,3 +2062,10 @@ body.modal-open { overflow: hidden; }
   .order-form > .form-section--wide,
   .order-form > .form-actions { grid-column: 1 / -1; }
 }
+
+/* 店舗名・電話番号が未設定のときの案内（画面のみ） */
+@media screen {
+  .store-unset-notice { margin: 0 0 12px; padding: 10px 14px; background: #FFF6DB; border: 1px solid #E8CF7A; border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.9rem; }
+  .store-unset-notice[hidden] { display: none; }
+}
+@media print { .store-unset-notice { display: none !important; } }

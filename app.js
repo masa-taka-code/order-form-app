@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 const APP_UPDATED = '2026-11-25';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -89,15 +89,14 @@ function deleteOrder(id) {
 
 // ===== 店舗情報設定 =====
 const SETTINGS_KEY = 'orderFormAppSettings';
-const DEFAULT_STORE_NAME = 'スーパーマーケット玉木屋';
-const DEFAULT_STORE_PHONE = '0193-63-2711';
+// 店舗名・電話番号はコードに書かず、設定画面で保存した値（この端末の中）だけを使う
 
 function getSettings() {
     const data = localStorage.getItem(SETTINGS_KEY);
     const settings = data ? JSON.parse(data) : {};
     return {
-        storeName: settings.storeName || DEFAULT_STORE_NAME,
-        storePhone: settings.storePhone || DEFAULT_STORE_PHONE,
+        storeName: settings.storeName || '',
+        storePhone: settings.storePhone || '',
         instagramQrImage: settings.instagramQrImage || ''
     };
 }
@@ -1129,7 +1128,14 @@ function showPrintPreview(id) {
         </style>
     `;
 
+    // 店舗名・電話番号が未設定なら気づけるようにする（プレビュー画面のみ。印刷物には出ない）
+    const storeSettings = getSettings();
+    const storeNotice = (!storeSettings.storeName || !storeSettings.storePhone)
+        ? `<div class="store-unset-notice">${icon('alert', 'icon-warn')} 店舗名または電話番号が未設定のため、印刷物の右下が空欄になります。「設定」で入力して保存してください。</div>`
+        : '';
+
     printContent.innerHTML = `
+        ${storeNotice}
         ${printStyles}
         <div class="print-preview-a4">
             <p class="preview-page-label">【1ページ目：お客様控え】</p>
@@ -1813,6 +1819,8 @@ function loadSettingsForm() {
     const settings = getSettings();
     settingStoreNameInput.value = settings.storeName;
     settingStorePhoneInput.value = settings.storePhone;
+    const unsetNote = document.getElementById('store-unset-note');
+    if (unsetNote) unsetNote.hidden = !!(settings.storeName && settings.storePhone);
     settingInstagramQrInput.value = '';
     pendingQrImage = undefined;
     updateQrPreview(settings.instagramQrImage);
@@ -1850,8 +1858,8 @@ clearInstagramQrBtn.addEventListener('click', () => {
 saveSettingsBtn.addEventListener('click', () => {
     const currentSettings = getSettings();
     saveSettings({
-        storeName: settingStoreNameInput.value.trim() || DEFAULT_STORE_NAME,
-        storePhone: settingStorePhoneInput.value.trim() || DEFAULT_STORE_PHONE,
+        storeName: settingStoreNameInput.value.trim(),
+        storePhone: settingStorePhoneInput.value.trim(),
         instagramQrImage: pendingQrImage !== undefined ? pendingQrImage : currentSettings.instagramQrImage
     });
     loadSettingsForm();

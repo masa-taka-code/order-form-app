@@ -288,11 +288,11 @@
         <div class="settings-section">
           <div class="form-group">
             <label for="setting-store-name">店舗名</label>
-            <input type="text" id="setting-store-name" placeholder="スーパーマーケット玉木屋">
+            <input type="text" id="setting-store-name" placeholder="例：○○ストア">
           </div>
           <div class="form-group">
             <label for="setting-store-phone">電話番号</label>
-            <input type="text" id="setting-store-phone" placeholder="0193-63-2711">
+            <input type="text" id="setting-store-phone" placeholder="例：000-000-0000">
           </div>
           <div class="form-group">
             <label for="setting-instagram-qr">InstagramのQRコード画像</label>
@@ -301,6 +301,7 @@
             <button type="button" id="clear-instagram-qr-btn" class="btn btn-secondary full-width" style="margin-top:8px;">QRコード画像を削除</button>
           </div>
           <button id="save-settings-btn" class="btn btn-primary full-width">保存</button>
+          <p id="store-unset-note" class="store-unset-notice" hidden>店舗名または電話番号が未設定です。入力して「保存」を押すと、印刷物の右下に表示されます。</p>
           <p class="settings-description">店舗名・電話番号は印刷物（お客様控え・店舗控え・部門控え）の右下に表示されます。QRコード画像はお客様控えのみ、電話番号の下に表示されます。</p>
         </div>
         <h2>データ管理</h2>
