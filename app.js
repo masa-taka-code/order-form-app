@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const APP_UPDATED = '2026-11-25';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1400,11 +1400,13 @@ function executePrintForOrder(order, onAfterPrint) {
     <style>${printOverrideCss}</style>`;
     document.body.appendChild(printArea);
 
-    // 印刷後に印刷領域を削除（一度だけ実行）
+    // 印刷後の処理（一度だけ実行）
+    // 印刷領域はここでは削除しない。iPad の Safari は window.print() の完了を待たずに
+    // 処理を進め、afterprint が印刷プレビューの生成より先に届くことがあるため、
+    // ここで消すと白紙になったり印刷画面が出なかったりする。
+    // 印刷領域は画面上は非表示で、次回の印刷時に新しい内容へ置き換える。
     const handleAfterPrint = () => {
         window.removeEventListener('afterprint', handleAfterPrint);
-        const area = document.getElementById('print-area');
-        if (area) area.remove();
         if (typeof onAfterPrint === 'function') onAfterPrint();
     };
     window.addEventListener('afterprint', handleAfterPrint);
