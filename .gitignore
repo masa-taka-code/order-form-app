@@ -1,0 +1,3 @@
+# 実データ（注文・設定）を含むバックアップはコミットしない
+order-backup-*.json
+*.backup.json
