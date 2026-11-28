@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.11.1';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1834,8 +1834,28 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
 // ホーム画面から起動した場合 window.print() が動かないため、プレビューを開いた時点でPDFを作っておき、
 // 印刷ボタンで共有メニュー（navigator.share）を開く。通常のSafariでは何も読み込まず従来どおり。
 function isStandaloneApp() {
-    return window.navigator.standalone === true ||
-        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    // iOS / iPadOS のホーム画面アプリのみ（他のOSのインストール型アプリは対象外）
+    const nav = window.navigator;
+    return nav.standalone === true ||
+        (!!window.matchMedia && window.matchMedia('(display-mode: standalone)').matches &&
+            (/iP(hone|ad|od)/.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)));
+}
+
+// 画面表示待ちが止まらないよう、待ち時間に上限を付けた Promise（時間切れでも reject せず続行する）
+function waitOrContinue(promise, ms) {
+    let timer;
+    const t = new Promise(resolve => { timer = setTimeout(resolve, ms); });
+    return Promise.race([promise, t]).catch(() => {}).finally(() => clearTimeout(timer));
+}
+
+// PDFファイルを共有メニューで渡せる端末か
+function canSharePdfFiles() {
+    try {
+        return !!(navigator.share && navigator.canShare &&
+            navigator.canShare({ files: [new File([''], 'check.pdf', { type: 'application/pdf' })] }));
+    } catch (e) {
+        return false;
+    }
 }
 
 const scriptLoadPromises = {};
@@ -1951,19 +1971,19 @@ async function buildOrderPdfFile(order, isStale) {
     frame.setAttribute('aria-hidden', 'true');
     frame.tabIndex = -1;
     frame.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 794px; height: 4000px; border: 0; visibility: hidden; pointer-events: none;';
-    const loaded = new Promise(resolve => frame.addEventListener('load', resolve, { once: true }));
+    const loaded = withTimeout(new Promise(resolve => frame.addEventListener('load', resolve, { once: true })), 10000);
     frame.srcdoc = doc;
     document.body.appendChild(frame);
     try {
         await loaded;
         checkStale();
         const fdoc = frame.contentDocument;
-        if (fdoc.fonts && fdoc.fonts.ready) await fdoc.fonts.ready;
+        if (fdoc.fonts && fdoc.fonts.ready) await waitOrContinue(fdoc.fonts.ready, 5000);
         await Promise.all(Array.from(fdoc.querySelectorAll('img')).map(img =>
-            img.complete ? Promise.resolve() : new Promise(resolve => {
+            img.complete ? Promise.resolve() : waitOrContinue(new Promise(resolve => {
                 img.addEventListener('load', resolve, { once: true });
                 img.addEventListener('error', resolve, { once: true });
-            })
+            }), 5000)
         ));
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         checkStale();
@@ -2006,7 +2026,16 @@ async function buildOrderPdfFile(order, isStale) {
             const pageEl = pages[i];
             const breaks = collectPdfBreakPositions(pageEl);
             const elH = pageEl.offsetHeight;
-            const canvas = await html2canvas(pageEl, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794, onclone });
+            // iOS のキャンバス面積の上限（約1677万px）を超えないよう倍率を下げる
+            const h = pageEl.offsetHeight;
+            const scale = Math.max(1, Math.min(2, Math.floor(Math.sqrt(16000000 / (794 * Math.max(h, 1))) * 100) / 100));
+            const renderPage = sc => html2canvas(pageEl, { scale: sc, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794, onclone });
+            let canvas = await renderPage(scale);
+            if (!canvas.width || !canvas.height) {
+                canvas.width = canvas.height = 0;
+                canvas = await renderPage(1);
+                if (!canvas.width || !canvas.height) throw new Error('キャンバスの作成に失敗しました');
+            }
             try {
                 checkStale();
                 const pageHeightPx = Math.floor(canvas.width * 267 / 180);
@@ -2063,14 +2092,18 @@ async function buildOrderPdfFile(order, isStale) {
 let preparedSharePdf = null; // { orderId, file }
 let sharePdfToken = 0;
 let standalonePrintState = '';
-let isSharingPdf = false;
+let lastShareAt = 0;        // 直前に共有画面を開こうとした時刻（同じタップでの二重呼び出し防止）
+let sharingStartedAt = 0;   // sharing 状態になった時刻
+let shareAttempt = 0;       // 共有の試行番号（リセットされた試行の遅い結果を無視するため）
 
 const PRINT_HELP_MESSAGES = {
     'preparing': '準備しています。少しお待ちください…',
-    'ready': 'このあと出る画面を下に動かして「プリント」を押してください。',
+    'ready': '次に出る一覧から「プリント」（プリンターの絵）を押してください。見つからないときは、一覧を指で上にずらしてください。',
     'cancelled': 'プリントを中止しました。もう一度「プリントする」を押すとやり直せます。',
     'share-error': 'プリントの画面を開けませんでした。もう一度「プリントする」を押してください。',
-    'prepare-error': 'プリントの準備ができませんでした。「もう一度ためす」を押してください。それでもできない場合は、アプリを閉じて開き直してください。'
+    'prepare-error': 'プリントの準備ができませんでした。「もう一度ためす」を押してください。何度もできないときは、アプリを閉じて開き直してから、もう一度お試しください。',
+    // ホーム画面アプリと Safari は保存データが別のため、「Safari で開く」は案内しない（注文が見つからない）
+    'unsupported': 'このiPadでは、ホーム画面のアプリから直接プリントできません。iPadの「設定」→「一般」→「ソフトウェアアップデート」で、iPadOSを最新にしてください。'
 };
 
 // ホーム画面アプリ用：ボタンと案内文の状態を切り替える（ボタンの文言は prepare-error のときだけ変わる）
@@ -2079,7 +2112,8 @@ function setStandalonePrintState(state, message) {
     const help = document.getElementById('print-help');
     const labelEl = btn.querySelector('.btn-label');
     standalonePrintState = state;
-    btn.disabled = (state === 'preparing' || state === 'sharing');
+    // sharing 中も押せるままにする（共有画面が閉じた通知が来ない場合に備える）
+    btn.disabled = (state === 'preparing' || state === 'unsupported');
     if (labelEl) labelEl.textContent = state === 'prepare-error' ? 'もう一度ためす' : 'プリントする';
     if (!help) return;
     // sharing は直前の案内文をそのまま残す
@@ -2129,6 +2163,12 @@ function withTimeout(promise, ms) {
 
 async function prepareSharePdf(order, token) {
     try {
+        // PDFを共有できない端末では、ライブラリも読み込まずに案内だけ出す
+        if (!canSharePdfFiles()) {
+            preparedSharePdf = null;
+            setStandalonePrintState('unsupported');
+            return;
+        }
         const isStale = () => token !== sharePdfToken;
         // 同時に1つだけ作る（古いものは最初の確認で素早く中止される）
         const job = pdfJobChain.catch(() => {}).then(async () => {
@@ -2136,8 +2176,10 @@ async function prepareSharePdf(order, token) {
             await loadPdfLibs();
             return buildOrderPdfFile(order, isStale);
         });
-        pdfJobChain = job;
-        const file = await withTimeout(job, 20000);
+        // 時間切れでも後続の作成が止まらないよう、タイムアウト付きの Promise を連鎖させる
+        const timed = withTimeout(job, 60000);
+        pdfJobChain = timed.catch(() => {});
+        const file = await timed;
         if (token !== sharePdfToken) return;
         if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
             throw new Error('このアプリではPDFを共有できません');
@@ -2156,7 +2198,8 @@ async function prepareSharePdf(order, token) {
 function startSharePdfPreparationIfStandalone(order) {
     const token = ++sharePdfToken;
     preparedSharePdf = null;
-    isSharingPdf = false;
+    lastShareAt = 0;
+    shareAttempt++;
     if (!isStandaloneApp()) {
         resetPrintButtonForBrowser();
         return;
@@ -2171,12 +2214,17 @@ function handleStandalonePrintClick(order) {
         startSharePdfPreparationIfStandalone(order);
         return;
     }
-    if (!preparedSharePdf || preparedSharePdf.orderId !== order.id || isSharingPdf) return; // 準備中などは何もしない
+    if (!preparedSharePdf || preparedSharePdf.orderId !== order.id) return; // 準備中などは何もしない
+    const now = Date.now();
+    if (now - lastShareAt < 800) return; // 同じタップでの二重呼び出しを防ぐ
+    lastShareAt = now;
     const token = sharePdfToken;
-    isSharingPdf = true;
+    const attempt = shareAttempt;
+    if (standalonePrintState !== 'sharing') sharingStartedAt = now;
     setStandalonePrintState('sharing');
     // navigator.share は、タップの処理の中で同期的に呼ぶ必要がある
     const onSuccess = () => {
+        if (attempt !== shareAttempt) return; // すでに状態を戻した試行の遅い結果は無視する
         let recorded = true;
         try {
             updateOrder(order.id, { isPrinted: true });
@@ -2186,28 +2234,44 @@ function handleStandalonePrintClick(order) {
             console.warn('印刷済みの記録に失敗しました', e);
         }
         printModal.classList.remove('active');
-        showToast(recorded ? '印刷済みにしました' : 'プリントの画面を開きました（印刷済みの記録はできませんでした）');
+        showToast(recorded ? '印刷済みにしました（印刷しなかったときは一覧の「未印刷に戻す」で戻せます）' : 'プリントの画面を開きました（印刷済みの記録はできませんでした）');
     };
     const onError = err => {
         // プレビューが閉じられた・別の注文に変わった場合は、新しい画面の状態に触れない
-        if (token !== sharePdfToken || !printModal.classList.contains('active')) return;
+        if (token !== sharePdfToken || attempt !== shareAttempt || !printModal.classList.contains('active')) return;
         if (err && err.name === 'AbortError') setStandalonePrintState('cancelled');
         else if (err && err.name === 'InvalidStateError') setStandalonePrintState('ready'); // すでに共有画面が開いている
         else setStandalonePrintState('share-error');
     };
-    navigator.share({ files: [preparedSharePdf.file] })
-        .then(onSuccess, onError)
-        .finally(() => {
-            if (token === sharePdfToken) isSharingPdf = false;
-        });
+    let sharePromise;
+    try {
+        sharePromise = navigator.share({ files: [preparedSharePdf.file] });
+    } catch (err) {
+        sharePromise = Promise.reject(err);
+    }
+    sharePromise.then(onSuccess, onError);
 }
+
+// 共有画面を閉じたのに結果が届かない場合（一部のiOS）に備え、画面に戻ったとき 3 秒以上 sharing なら ready に戻す
+function recoverFromStuckSharing() {
+    if (standalonePrintState !== 'sharing') return;
+    if (Date.now() - sharingStartedAt <= 3000) return;
+    if (!printModal.classList.contains('active')) return;
+    shareAttempt++; // 以前の共有の遅い結果を無視する
+    setStandalonePrintState('ready');
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') recoverFromStuckSharing();
+});
+window.addEventListener('focus', recoverFromStuckSharing);
 
 // プレビューが閉じられたら準備済みPDFを破棄し、ボタンと案内文も戻す（どの閉じ方でも）
 new MutationObserver(() => {
     if (!printModal.classList.contains('active')) {
         sharePdfToken++;
         preparedSharePdf = null;
-        isSharingPdf = false;
+        lastShareAt = 0;
+        shareAttempt++;
         const help = document.getElementById('print-help');
         if (help) { help.hidden = true; help.textContent = ''; }
         const btn = document.getElementById('download-pdf-btn');
@@ -2263,7 +2327,7 @@ loadSettingsForm();
 // 設定画面の一番下にバージョンを表示（iPadで最新版が読み込まれているかの確認にも使う）
 (() => {
     const el = document.getElementById('app-version');
-    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）`;
+    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）` + (isStandaloneApp() ? '・ホーム画面アプリ' : '');
 })();
 
 settingInstagramQrInput.addEventListener('change', () => {
