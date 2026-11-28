@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.12.1';
+const APP_VERSION = '1.13.0';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1027,7 +1027,7 @@ function showPrintPreview(id) {
                 font-size: 18pt;
                 font-weight: bold;
                 letter-spacing: 2pt;
-                margin-bottom: 8mm;
+                margin-bottom: 12px;
             }
             
             /* === メインテーブル === */
@@ -1037,105 +1037,23 @@ function showPrintPreview(id) {
                 border: 1px solid #000;
             }
             
-            .print-preview-a4 .paper-table th,
-            .print-preview-a4 .paper-table td {
+            .print-preview-a4 .paper-table > tbody > tr > th,
+            .print-preview-a4 .paper-table > tbody > tr > td {
                 border: 1px solid #000;
-                padding: 2mm 3mm;
+                padding: 5px 6px;
                 vertical-align: middle;
                 font-size: 10.5pt;
             }
             
-            .print-preview-a4 .paper-table th {
+            .print-preview-a4 .paper-table > tbody > tr > th {
                 background: #f0f0f0;
                 font-weight: bold;
                 text-align: center;
                 width: 25mm;
             }
             
-            .print-preview-a4 .paper-table td {
+            .print-preview-a4 .paper-table > tbody > tr > td {
                 text-align: left;
-            }
-            
-            /* === 商品テーブル === */
-            .print-preview-a4 .product-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            
-            .print-preview-a4 .product-table th,
-            .print-preview-a4 .product-table td {
-                border: 1px solid #000;
-                padding: 1.5mm 2mm;
-                font-size: 10pt;
-            }
-            
-            .print-preview-a4 .product-table th {
-                background: #f5f5f5;
-                font-weight: bold;
-                text-align: center;
-            }
-            
-            .print-preview-a4 .product-table td {
-                text-align: center;
-            }
-            
-            .print-preview-a4 .product-table td:first-child {
-                text-align: left;
-            }
-            
-            .print-preview-a4 .product-table td:last-child {
-                text-align: right;
-            }
-            
-            /* === 合計エリア === */
-            .print-preview-a4 .total-cell {
-                text-align: right !important;
-                font-weight: bold;
-                font-size: 10.5pt;
-                padding: 2mm !important;
-                vertical-align: top !important;
-                width: 50mm;
-            }
-            
-            .print-preview-a4 .total-details {
-                text-align: right;
-            }
-            
-            .print-preview-a4 .total-detail-item {
-                font-size: 9pt;
-                line-height: 1.4;
-                white-space: nowrap;
-            }
-            
-            .print-preview-a4 .total-detail-item.total-main {
-                font-size: 12pt;
-                font-weight: bold;
-                border-top: 1px solid #000;
-                padding-top: 1mm;
-                margin-top: 1mm;
-            }
-            
-            /* === チェックボックス === */
-            .print-preview-a4 .check-group {
-                display: inline;
-            }
-            
-            .print-preview-a4 .check-item {
-                display: inline-block;
-                margin-right: 4mm;
-                font-size: 10.5pt;
-            }
-            
-            .print-preview-a4 .check-box {
-                display: inline-block;
-                width: 4mm;
-                height: 4mm;
-                border: 1px solid #000;
-                text-align: center;
-                line-height: 4mm;
-                font-size: 9pt;
-                margin-right: 1mm;
-                vertical-align: middle;
             }
             
             /* === 店舗情報 === */
@@ -1187,6 +1105,65 @@ function showPrintPreview(id) {
     startSharePdfPreparationIfNeeded(order);
 }
 
+// 紙面の「商品テーブル・合計欄・チェックボックス」のCSS（店舗控え・部門控え・お客様控えの styleBlock で共用）
+const PAPER_LAYOUT_CSS = `
+            /* 商品テーブル：外枠なし（セル間の罫線のみ）。高さは親セルいっぱいに広げて下の空きをなくす */
+            .product-table { margin: 0; width: 100%; border-collapse: collapse; table-layout: fixed; border: none; flex: 1 1 auto; height: 100%; }
+            .product-table th, .product-table td { border: 1px solid #000; padding: 4px 6px; font-size: 10pt; vertical-align: middle; }
+            .product-table th { background-color: transparent; font-weight: bold; text-align: center; }
+            .product-table th, .product-table td:nth-child(2), .product-table td:nth-child(3), .product-table td:nth-child(4) { white-space: nowrap; }
+            .product-table td { text-align: center; }
+            .product-table td:first-child { text-align: left; }
+            .product-table td:nth-child(3), .product-table td:nth-child(4) { text-align: right; }
+            .product-table thead tr:first-child > * { border-top: none; }
+            .product-table tbody tr:last-child > * { border-bottom: none; }
+            .product-table tr > *:first-child { border-left: none; }
+            .product-table tr > *:last-child { border-right: none; }
+            /* 合計欄：ラベルと金額を2列に揃える */
+            .total-cell { padding: 6px 10px; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; font-weight: bold; text-align: left; }
+            .total-details { width: 100%; padding: 0; font-size: 10pt; line-height: 1.5; }
+            .total-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+            .t-label { text-align: left; white-space: nowrap; }
+            .t-value { text-align: right; white-space: nowrap; }
+            .total-sub { font-size: 9pt; color: #333; }
+            .total-main { font-size: 15pt; font-weight: bold; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; margin: 4px 0; padding: 3px 0; }
+            /* チェックボックス */
+            .check-group { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+            .check-item { display: inline-flex; align-items: center; gap: 3px; margin-right: 0; }
+            .check-box { width: 1em; height: 1em; line-height: 1em; font-size: inherit; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px solid #000; }
+            .check-mark { font-size: 0.85em; line-height: 1; }
+`;
+
+// 合計欄のHTML（ラベルと金額を別spanにして列を揃える）
+function buildTotalDetailsHtml(order) {
+    const subtotal = order.subtotal || 0;
+    const taxExcluded8Total = order.taxExcluded8Total || 0;
+    const tax8Amount = order.tax8Amount || 0;
+    const taxExcluded10Total = order.taxExcluded10Total || 0;
+    const tax10Amount = order.tax10Amount || 0;
+    const itemCount = order.itemCount || 0;
+    const totalAmount = order.totalAmount || 0;
+    const innerTaxTotal = order.innerTaxTotal || 0;
+    const row = (label, value, cls) =>
+        `<div class="total-row${cls ? ' ' + cls : ''}"><span class="t-label">${label}</span><span class="t-value">${value}</span></div>`;
+
+    let html = row('小計', `¥${subtotal.toLocaleString()}`);
+    if (taxExcluded8Total > 0) {
+        html += row('外税8%対象額', `¥${taxExcluded8Total.toLocaleString()}`, 'total-sub');
+        html += row('外税額（8%）', `¥${tax8Amount.toLocaleString()}`);
+    }
+    if (taxExcluded10Total > 0) {
+        html += row('外税10%対象額', `¥${taxExcluded10Total.toLocaleString()}`, 'total-sub');
+        html += row('外税額（10%）', `¥${tax10Amount.toLocaleString()}`);
+    }
+    html += row('買上点数', `${itemCount}点`);
+    html += row('合計', `¥${totalAmount.toLocaleString()}`, 'total-main');
+    if (innerTaxTotal > 0) {
+        html += row('内消費税等', `¥${innerTaxTotal.toLocaleString()}`, 'total-sub');
+    }
+    return html;
+}
+
 // 印刷用の紙面CSS（executePrintForOrder の @media print 内にそのまま埋め込まれる。PDF生成でも共用）
 const PAPER_BASE_CSS = `        /* === リセット === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1211,7 +1188,7 @@ const PAPER_BASE_CSS = `        /* === リセット === */
             font-size: 18pt;
             font-weight: bold;
             letter-spacing: 2pt;
-            margin-bottom: 8mm;
+            margin-bottom: 12px;
         }
         
         /* === メインテーブル === */
@@ -1224,7 +1201,7 @@ const PAPER_BASE_CSS = `        /* === リセット === */
         .paper-table th,
         .paper-table td {
             border: 1px solid #000;
-            padding: 2mm 3mm;
+            padding: 5px 6px;
             vertical-align: middle;
             font-size: 10.5pt;
         }
@@ -1238,88 +1215,6 @@ const PAPER_BASE_CSS = `        /* === リセット === */
         
         .paper-table td {
             text-align: left;
-        }
-        
-        /* === 商品テーブル（入れ子） === */
-        .product-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .product-table th,
-        .product-table td {
-            border: 1px solid #000;
-            padding: 1.5mm 2mm;
-            font-size: 10pt;
-        }
-        
-        .product-table th {
-            background: #f5f5f5;
-            font-weight: bold;
-            text-align: center;
-        }
-        
-        .product-table td {
-            text-align: center;
-        }
-        
-        .product-table td:first-child {
-            text-align: left;
-        }
-        
-        .product-table td:last-child {
-            text-align: right;
-        }
-        
-        /* === 合計エリア === */
-        .total-cell {
-            text-align: right !important;
-            font-weight: bold;
-            font-size: 10.5pt;
-            padding: 2mm !important;
-            vertical-align: top !important;
-            width: 50mm;
-        }
-        
-        .total-details {
-            text-align: right;
-        }
-        
-        .total-detail-item {
-            font-size: 9pt;
-            line-height: 1.4;
-            white-space: nowrap;
-        }
-        
-        .total-detail-item.total-main {
-            font-size: 12pt;
-            font-weight: bold;
-            border-top: 1px solid #000;
-            padding-top: 1mm;
-            margin-top: 1mm;
-        }
-        
-        /* === チェックボックス風 === */
-        .check-group {
-            display: inline;
-        }
-        
-        .check-item {
-            display: inline-block;
-            margin-right: 4mm;
-            font-size: 10.5pt;
-        }
-        
-        .check-box {
-            display: inline-block;
-            width: 4mm;
-            height: 4mm;
-            border: 1px solid #000;
-            text-align: center;
-            line-height: 4mm;
-            font-size: 9pt;
-            margin-right: 1mm;
-            vertical-align: middle;
         }
         
         /* === 店舗情報（表の下に相対配置） === */
@@ -1484,7 +1379,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
         : '<tr><td colspan="4">（商品なし）</td></tr>';
 
     // チェックボックス生成ヘルパー
-    const checkbox = (checked) => `<span class="check-box">${checked ? '✓' : ''}</span>`;
+    const checkbox = (checked) => `<span class="check-box">${checked ? '<span class="check-mark">✓</span>' : ''}</span>`;
 
     // 代金オプション（未収を削除）
     const paymentType = order.paymentType || order.paymentMethod || '';
@@ -1499,35 +1394,8 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
         `<span class="check-item">${checkbox(departments.includes(d))}${d}</span>`
     ).join('');
 
-    // 詳細な合計計算情報
-    const subtotal = order.subtotal || 0;
-    const taxExcluded8Total = order.taxExcluded8Total || 0;
-    const tax8Amount = order.tax8Amount || 0;
-    const taxExcluded10Total = order.taxExcluded10Total || 0;
-    const tax10Amount = order.tax10Amount || 0;
-    const itemCount = order.itemCount || 0;
-    const totalAmount = order.totalAmount || 0;
-    const innerTaxTotal = order.innerTaxTotal || 0;
-
-    // 合計明細を生成
-    let totalDetailsHtml = `<div class="total-detail-item">小計　¥${subtotal.toLocaleString()}</div>`;
-
-    if (taxExcluded8Total > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（外税8%対象額　¥${taxExcluded8Total.toLocaleString()}）</div>`;
-        totalDetailsHtml += `<div class="total-detail-item">外税額　8%　¥${tax8Amount.toLocaleString()}</div>`;
-    }
-
-    if (taxExcluded10Total > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（外税10%対象額　¥${taxExcluded10Total.toLocaleString()}）</div>`;
-        totalDetailsHtml += `<div class="total-detail-item">外税額　10%　¥${tax10Amount.toLocaleString()}</div>`;
-    }
-
-    totalDetailsHtml += `<div class="total-detail-item">買上点数　${itemCount}点</div>`;
-    totalDetailsHtml += `<div class="total-detail-item total-main">合計　¥${totalAmount.toLocaleString()}</div>`;
-
-    if (innerTaxTotal > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（内消費税等　¥${innerTaxTotal.toLocaleString()}）</div>`;
-    }
+    // 合計明細（ラベルと金額を2列に揃える）
+    const totalDetailsHtml = buildTotalDetailsHtml(order);
 
 
     // 埋め込みスタイル（外部CSSに依存せず確実に反映させる）
@@ -1548,22 +1416,11 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
                 font-family: sans-serif;
                 position: relative;
             }
-            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; letter-spacing: 2px; }
+            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 12px; letter-spacing: 2px; }
             .paper-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #000; margin-bottom: 20px; }
-            .paper-table th, .paper-table td { border: 1px solid #000; padding: 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
+            .paper-table th, .paper-table td { border: 1px solid #000; padding: 5px 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
             .paper-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
-            /* 商品テーブル */
-            .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
-            .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
-            .product-table th { background-color: transparent; }
-            .product-table th, .product-table td:nth-child(2), .product-table td:nth-child(3), .product-table td:nth-child(4) { white-space: nowrap; }
-            /* 合計 */
-            .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
-            .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
-            /* チェックボックス */
-            .check-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; font-size: 12px; margin-right: 2px; }
-            .check-item { margin-right: 12px; display: inline-block; }
-        </style>
+${PAPER_LAYOUT_CSS}        </style>
     `;
 
     return styleBlock + `
@@ -1582,16 +1439,16 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
         <tr>
             <th>受付日</th>
             <td>${formatDate(order.receptionDate)}</td>
-            <td style="text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
-            <td style="text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
+            <td style="text-align: center;"><span class="check-item">${checkbox(order.receptionMethod === '来店')}来店</span></td>
+            <td style="text-align: center;"><span class="check-item">${checkbox(order.receptionMethod === '電話')}電話</span></td>
             <th style="font-size: 0.85em;">受注者</th>
             <td style="font-size: 0.85em;">${escapeHtml(order.staffName || '')}</td>
         </tr>
         <tr style="font-weight: bold;">
             <th style="background: #f0f0f0;">お受け取り<br>日時</th>
             <td colspan="3" style="background: #fffde7; font-size: 1.2em; line-height: 1.2;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
-            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '配達')}配達</td>
-            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '店頭')}店頭</td>
+            <td style="text-align: center; font-size: 1.2em !important;"><span class="check-item">${checkbox(order.deliveryMethod === '配達')}配達</span></td>
+            <td style="text-align: center; font-size: 1.2em !important;"><span class="check-item">${checkbox(order.deliveryMethod === '店頭')}店頭</span></td>
         </tr>
 
         <tr>
@@ -1606,7 +1463,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
             <th>ご注文品</th>
             <td colspan="5" style="padding: 0; vertical-align: top;">
                 <div style="display: flex; width: 100%;">
-                    <div style="flex: 1; border-right: 1px solid #000;">
+                    <div style="flex: 1; min-width: 0; border-right: 1px solid #000; display: flex; flex-direction: column; align-self: stretch;">
                         <table class="product-table">
                             <thead>
                                 <tr><th style="width: 34%;">商品名</th><th style="width: 13%;">個数</th><th style="width: 25%;">単価</th><th style="width: 28%;">合計金額</th></tr>
@@ -1673,37 +1530,11 @@ function generateCustomerCopyHtml(order) {
         : '<tr><td colspan="4">（商品なし）</td></tr>';
 
     // チェックボックス生成ヘルパー
-    const checkbox = (checked) => `<span class="check-box">${checked ? '✓' : ''}</span>`;
+    const checkbox = (checked) => `<span class="check-box">${checked ? '<span class="check-mark">✓</span>' : ''}</span>`;
 
-    // 詳細な合計計算情報
-    const subtotal = order.subtotal || 0;
-    const taxExcluded8Total = order.taxExcluded8Total || 0;
-    const tax8Amount = order.tax8Amount || 0;
-    const taxExcluded10Total = order.taxExcluded10Total || 0;
-    const tax10Amount = order.tax10Amount || 0;
-    const itemCount = order.itemCount || 0;
-    const totalAmount = order.totalAmount || 0;
-    const innerTaxTotal = order.innerTaxTotal || 0;
+    // 合計明細（ラベルと金額を2列に揃える）
+    const totalDetailsHtml = buildTotalDetailsHtml(order);
 
-    // 合計明細を生成
-    let totalDetailsHtml = `<div class="total-detail-item">小計　¥${subtotal.toLocaleString()}</div>`;
-
-    if (taxExcluded8Total > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（外税8%対象額　¥${taxExcluded8Total.toLocaleString()}）</div>`;
-        totalDetailsHtml += `<div class="total-detail-item">外税額　8%　¥${tax8Amount.toLocaleString()}</div>`;
-    }
-
-    if (taxExcluded10Total > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（外税10%対象額　¥${taxExcluded10Total.toLocaleString()}）</div>`;
-        totalDetailsHtml += `<div class="total-detail-item">外税額　10%　¥${tax10Amount.toLocaleString()}</div>`;
-    }
-
-    totalDetailsHtml += `<div class="total-detail-item">買上点数　${itemCount}点</div>`;
-    totalDetailsHtml += `<div class="total-detail-item total-main">合計　¥${totalAmount.toLocaleString()}</div>`;
-
-    if (innerTaxTotal > 0) {
-        totalDetailsHtml += `<div class="total-detail-item">（内消費税等　¥${innerTaxTotal.toLocaleString()}）</div>`;
-    }
 
     // スタイルブロックはgeneratePrintHtmlForPaperと同じものを使用
     const styleBlock = `
@@ -1723,19 +1554,11 @@ function generateCustomerCopyHtml(order) {
                 font-family: sans-serif;
                 position: relative;
             }
-            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; letter-spacing: 2px; }
+            .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 12px; letter-spacing: 2px; }
             .paper-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid #000; margin-bottom: 20px; }
-            .paper-table th, .paper-table td { border: 1px solid #000; padding: 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
+            .paper-table th, .paper-table td { border: 1px solid #000; padding: 5px 6px; font-size: 11pt; vertical-align: middle; word-break: break-all; }
             .paper-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
-            .product-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; margin: -1px; width: calc(100% + 2px); }
-            .product-table th, .product-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
-            .product-table th { background-color: transparent; }
-            .product-table th, .product-table td:nth-child(2), .product-table td:nth-child(3), .product-table td:nth-child(4) { white-space: nowrap; }
-            .total-main { font-size: 16pt; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; margin: 5px 0; padding: 5px 0; }
-            .total-details { text-align: right; font-size: 10pt; line-height: 1.4; }
-            .check-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; font-size: 12px; margin-right: 2px; }
-            .check-item { margin-right: 12px; display: inline-block; }
-        </style>
+${PAPER_LAYOUT_CSS}        </style>
     `;
 
     return styleBlock + `
@@ -1754,16 +1577,16 @@ function generateCustomerCopyHtml(order) {
         <tr>
             <th>受付日</th>
             <td>${formatDate(order.receptionDate)}</td>
-            <td style="text-align: center;">${checkbox(order.receptionMethod === '来店')}来店</td>
-            <td style="text-align: center;">${checkbox(order.receptionMethod === '電話')}電話</td>
+            <td style="text-align: center;"><span class="check-item">${checkbox(order.receptionMethod === '来店')}来店</span></td>
+            <td style="text-align: center;"><span class="check-item">${checkbox(order.receptionMethod === '電話')}電話</span></td>
             <th style="font-size: 0.85em;">受注者</th>
             <td style="font-size: 0.85em;">${escapeHtml(order.staffName || '')}</td>
         </tr>
         <tr style="font-weight: bold;">
             <th style="background: #f0f0f0;">お受け取り<br>日時</th>
             <td colspan="3" style="background: #fffde7; font-size: 1.2em; line-height: 1.2;">${order.orderDatetime ? formatDateTime(order.orderDatetime) : ''}</td>
-            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '配達')}配達</td>
-            <td style="text-align: center; font-size: 1.2em !important;">${checkbox(order.deliveryMethod === '店頭')}店頭</td>
+            <td style="text-align: center; font-size: 1.2em !important;"><span class="check-item">${checkbox(order.deliveryMethod === '配達')}配達</span></td>
+            <td style="text-align: center; font-size: 1.2em !important;"><span class="check-item">${checkbox(order.deliveryMethod === '店頭')}店頭</span></td>
         </tr>
 
         <tr>
@@ -1778,7 +1601,7 @@ function generateCustomerCopyHtml(order) {
             <th>ご注文品</th>
             <td colspan="5" style="padding: 0; vertical-align: top;">
                 <div style="display: flex; width: 100%;">
-                    <div style="flex: 1; border-right: 1px solid #000;">
+                    <div style="flex: 1; min-width: 0; border-right: 1px solid #000; display: flex; flex-direction: column; align-self: stretch;">
                         <table class="product-table">
                             <thead>
                                 <tr><th style="width: 34%;">商品名</th><th style="width: 13%;">個数</th><th style="width: 25%;">単価</th><th style="width: 28%;">合計金額</th></tr>
@@ -1994,6 +1817,8 @@ async function buildOrderPdfFile(order, isStale) {
         + htmls.map(h => '<div class="pdf-page" style="background:#fff;">' + h + '</div>').join('')
         // 印刷時の最終オーバーライドは本文の後ろに置く（実際の印刷と同じ順番）
         + '<style>' + toPdfRenderCss(PRINT_OVERRIDE_CSS) + '</style>'
+        // html2canvas は letter-spacing が 0 だと単語ごとに描画して iPad で数字がずれるため、0 以外にして1文字ずつ描画させる（PDF作成時のみ）
+        + '<style>:where(#pdf-render-root) * { letter-spacing: 0.01px; }</style>'
         + '</div></body></html>';
 
     const frame = document.createElement('iframe');
