@@ -2,8 +2,8 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.8.3';
-const APP_UPDATED = '2026-11-25';
+const APP_VERSION = '1.11.2';
+const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
 // 外部読み込みなしでオフラインでも表示できるよう、ここに直接書き込んでいる。
@@ -465,8 +465,10 @@ orderForm.addEventListener('submit', (e) => {
         return;
     }
 
+    let savedId = null;
     if (editingOrderId) {
         // 編集モード：既存の注文を更新
+        savedId = editingOrderId;
         const stored = getOrders().find(o => o.id === editingOrderId);
         const update = { ...data };
         let message = '注文を更新しました！';
@@ -487,14 +489,41 @@ orderForm.addEventListener('submit', (e) => {
         hideEditBanner();
     } else {
         // 新規モード
-        addOrder(data);
+        const added = addOrder(data);
+        savedId = added && added.id;
         alert('注文を保存しました！');
     }
     orderForm.reset();
     initForm();
-    // 保存後は画面の先頭へ戻す
-    window.scrollTo(0, 0);
+    // 保存後は「詳細」タブへ移り、保存した注文のカードを表示してハイライトする
+    showSavedOrderInList(savedId);
 });
+
+// 保存した注文を「詳細」タブで見える位置に出してハイライトする（画面の状態のみ変更。保存データは触らない）
+function showSavedOrderInList(id) {
+    const findCard = () => id == null ? null :
+        Array.from(ordersList.querySelectorAll('.order-card')).find(c => c.dataset.id === String(id));
+    switchTab('list', { scroll: 'top' });
+    if (!findCard()) {
+        // 検索・絞り込みで隠れている場合は、画面上の絞り込みだけ解除して描画し直す
+        searchInput.value = '';
+        filterStatus.value = 'all';
+        filterPrint.value = 'all';
+        renderOrdersList();
+    }
+    // 新規入力タブに戻ったとき、空のフォームの先頭が見えるようにする
+    tabScrollPositions.input = 0;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        const card = findCard();
+        if (!card) { window.scrollTo(0, 0); return; }
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+        card.classList.add('just-saved');
+        card.setAttribute('tabindex', '-1');
+        card.focus({ preventScroll: true });
+        setTimeout(() => card.classList.remove('just-saved'), 4000);
+    }));
+}
 
 // ブラウザ標準の検証（required）で止まった場合も、固定ヘッダーに隠れない位置へスクロール
 customerNameInput.addEventListener('invalid', (e) => {
@@ -1149,33 +1178,11 @@ function showPrintPreview(id) {
         </div>
     `;
     printModal.classList.add('active');
+    startSharePdfPreparationIfStandalone(order);
 }
 
-// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
-// iPad Safari対策：新規ウィンドウを使わず、現在のページ内の #print-area を印刷する。
-// window.print() はクリック操作と同じ呼び出しスタック内で同期的に呼ぶ。
-// onAfterPrint: 印刷ダイアログ終了後（afterprint）に呼ばれるコールバック（任意）
-function executePrintForOrder(order, onAfterPrint) {
-    const customerCopyHtml = generateCustomerCopyHtml(order);
-    const storeCopyHtml = generatePrintHtmlForPaper(order);
-    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
-
-    // 既存の印刷領域があれば削除
-    const oldArea = document.getElementById('print-area');
-    if (oldArea) oldArea.remove();
-
-    // 印刷専用CSS（画面表示に影響しないよう全て @media print 内に限定）
-    const printCss = `
-        /* 画面上では印刷領域を非表示 */
-        #print-area { display: none; }
-
-        @media print {
-            /* 印刷領域以外を非表示 */
-            body > *:not(#print-area) { display: none !important; }
-            #print-area { display: block !important; }
-
-
-        /* === リセット === */
+// 印刷用の紙面CSS（executePrintForOrder の @media print 内にそのまま埋め込まれる。PDF生成でも共用）
+const PAPER_BASE_CSS = `        /* === リセット === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         /* === 紙コンテナ（A4基準） === */
@@ -1322,7 +1329,23 @@ function executePrintForOrder(order, onAfterPrint) {
         .page-break {
             page-break-after: always;
             break-after: page;
-        }
+        }`;
+
+// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
+// iPad Safari対策：新規ウィンドウを使わず、現在のページ内の #print-area を印刷する。
+// window.print() はクリック操作と同じ呼び出しスタック内で同期的に呼ぶ。
+// 印刷領域のCSS（実際の印刷と、ホーム画面アプリ用のPDF作成で同じものを使う）
+const PRINT_AREA_CSS = `
+        /* 画面上では印刷領域を非表示 */
+        #print-area { display: none; }
+
+        @media print {
+            /* 印刷領域以外を非表示 */
+            body > *:not(#print-area) { display: none !important; }
+            #print-area { display: block !important; }
+
+
+${PAPER_BASE_CSS}
         
         /* === 印刷時のスタイル === */
         @media print {
@@ -1366,9 +1389,8 @@ function executePrintForOrder(order, onAfterPrint) {
         }
     `;
 
-    // 印刷時の最終オーバーライド。各控えのHTML内の <style>（@page margin:0 など）より
-    // 後ろに置かないと負けるため、必ず本文の後に挿入する
-    const printOverrideCss = `
+// 印刷時の最終オーバーライド（本文の後ろに置く）
+const PRINT_OVERRIDE_CSS = `
         @media print {
             .paper {
                 min-height: auto !important;
@@ -1386,6 +1408,23 @@ function executePrintForOrder(order, onAfterPrint) {
             }
         }
     `;
+
+// onAfterPrint: 印刷ダイアログ終了後（afterprint）に呼ばれるコールバック（任意）
+function executePrintForOrder(order, onAfterPrint) {
+    const customerCopyHtml = generateCustomerCopyHtml(order);
+    const storeCopyHtml = generatePrintHtmlForPaper(order);
+    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
+
+    // 既存の印刷領域があれば削除
+    const oldArea = document.getElementById('print-area');
+    if (oldArea) oldArea.remove();
+
+    // 印刷専用CSS（画面表示に影響しないよう全て @media print 内に限定）
+    const printCss = PRINT_AREA_CSS;
+
+    // 印刷時の最終オーバーライド。各控えのHTML内の <style>（@page margin:0 など）より
+    // 後ろに置かないと負けるため、必ず本文の後に挿入する
+    const printOverrideCss = PRINT_OVERRIDE_CSS;
 
     // 印刷領域を作成（3ページ：お客様控え→店舗控え→部門控え）
     const printArea = document.createElement('div');
@@ -1774,6 +1813,12 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
 
+    // ホーム画面アプリ：window.print() が動かないため、共有メニュー経由のみ（印刷へは切り替えない）
+    if (isStandaloneApp()) {
+        handleStandalonePrintClick(order);
+        return;
+    }
+
     // 現在のページ内で印刷（印刷ダイアログを開いてPDF保存も可能）
     // 印刷済みの記録は、印刷ダイアログが閉じた後（afterprint）に行う
     executePrintForOrder(order, () => {
@@ -1785,6 +1830,469 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     });
 });
 
+// ===== ホーム画面アプリ（全画面モード）向け：PDFを作って共有メニューからプリント =====
+// ホーム画面から起動した場合 window.print() が動かないため、プレビューを開いた時点でPDFを作っておき、
+// 印刷ボタンで共有メニュー（navigator.share）を開く。通常のSafariでは何も読み込まず従来どおり。
+function isStandaloneApp() {
+    // iOS / iPadOS のホーム画面アプリのみ（他のOSのインストール型アプリは対象外）
+    const nav = window.navigator;
+    return nav.standalone === true ||
+        (!!window.matchMedia && window.matchMedia('(display-mode: standalone)').matches &&
+            (/iP(hone|ad|od)/.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)));
+}
+
+// 画面表示待ちが止まらないよう、待ち時間に上限を付けた Promise（時間切れでも reject せず続行する）
+function waitOrContinue(promise, ms) {
+    let timer;
+    const t = new Promise(resolve => { timer = setTimeout(resolve, ms); });
+    return Promise.race([promise, t]).catch(() => {}).finally(() => clearTimeout(timer));
+}
+
+// PDFファイルを共有メニューで渡せる端末か
+function canSharePdfFiles() {
+    try {
+        return !!(navigator.share && navigator.canShare &&
+            navigator.canShare({ files: [new File([''], 'check.pdf', { type: 'application/pdf' })] }));
+    } catch (e) {
+        return false;
+    }
+}
+
+const scriptLoadPromises = {};
+let scriptLoadRetry = 0;
+function loadScriptOnce(src) {
+    if (!scriptLoadPromises[src]) {
+        scriptLoadPromises[src] = new Promise((resolve, reject) => {
+            const el = document.createElement('script');
+            // やり直しのときは、応答のないまま止まった前回の読み込みを使い回さないよう別の要求にする
+            el.src = scriptLoadRetry > 0 ? `${src}?retry=${scriptLoadRetry}` : src;
+            // 失敗・応答なしのときは記録を消して、次回（「もう一度ためす」）に読み込み直せるようにする
+            const fail = (message) => {
+                clearTimeout(timer);
+                delete scriptLoadPromises[src];
+                scriptLoadRetry++;
+                el.remove();
+                reject(new Error(message + ': ' + src));
+            };
+            const timer = setTimeout(() => fail('読み込みが応答しません'), 30000);
+            el.onload = () => { clearTimeout(timer); resolve(); };
+            el.onerror = () => fail('読み込みに失敗');
+            document.head.appendChild(el);
+        });
+    }
+    return scriptLoadPromises[src];
+}
+
+function loadPdfLibs() {
+    return Promise.all([
+        loadScriptOnce('vendor/html2canvas-1.4.1.min.js'),
+        loadScriptOnce('vendor/jspdf-2.5.2.umd.min.js')
+    ]);
+}
+
+// 印刷時（executePrintForOrder）と同じ見た目になるよう、紙面CSSを #pdf-render-root 配下に限定して画面に適用する
+// 実際の印刷用CSSを、PDF作成用（画面上での描画）に変換する。
+// - @media print の中身は有効にし、@media screen と @page は除く
+// - 印刷領域の表示切替（body > * / #print-area 単体）の指定は除く
+// - セレクタの先頭に :where(#pdf-render-root) を付ける。:where は優先度を上げないため、
+//   各控えのHTML内の <style> が後から上書きする関係が実際の印刷と同じになる
+function toPdfRenderCss(css) {
+    const src = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+        const open = src.indexOf('{', i);
+        if (open === -1) break;
+        const head = src.slice(i, open).trim();
+        // 対応する閉じ括弧を探す（入れ子に対応）
+        let depth = 1, j = open + 1;
+        while (j < src.length && depth > 0) {
+            if (src[j] === '{') depth++;
+            else if (src[j] === '}') depth--;
+            j++;
+        }
+        const body = src.slice(open + 1, j - 1);
+        i = j;
+        if (/^@media\b/.test(head)) {
+            if (/\bprint\b/.test(head) && !/\bnot\b/.test(head)) out += toPdfRenderCss(body);
+            continue; // @media screen や not print など、印刷以外は使わない
+        }
+        if (/^@supports\b/.test(head)) { out += toPdfRenderCss(body); continue; } // 中身は print と同様に残す
+        if (/^@/.test(head)) continue; // @page など
+        const selectors = head.split(',').map(x => x.trim()).filter(Boolean)
+            .filter(x => !/^(html|body)\b/.test(x) && x !== '#print-area')
+            .map(x => ':where(#pdf-render-root) ' + x.replace(/^#print-area\s+/, ''));
+        if (selectors.length) out += selectors.join(', ') + ' {' + body + '}\n';
+    }
+    return out;
+}
+
+function makeStaleError() {
+    const e = new Error('stale');
+    e.name = 'StalePdfJob';
+    return e;
+}
+
+function pdfFileNameForOrder(order) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec((order && order.receptionDate) || '');
+    let ymd;
+    if (m && !isNaN(new Date(+m[1], +m[2] - 1, +m[3]).getTime())) {
+        ymd = m[1] + m[2] + m[3];
+    } else {
+        const d = new Date();
+        ymd = String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    }
+    return 'ご注文承り書_' + ymd + '.pdf';
+}
+
+// 改ページ候補（ページ要素の上端からの CSS px）：行（tr）・店舗情報の下端と要素全体の高さ
+function collectPdfBreakPositions(pageEl) {
+    const top = pageEl.getBoundingClientRect().top;
+    const set = new Set();
+    pageEl.querySelectorAll('tr, .store-info').forEach(el => {
+        const bottom = el.getBoundingClientRect().bottom - top;
+        if (bottom > 0) set.add(Math.round(bottom * 100) / 100);
+    });
+    set.add(pageEl.offsetHeight);
+    return Array.from(set).sort((x, y) => x - y);
+}
+
+let pdfJobChain = Promise.resolve();
+
+async function buildOrderPdfFile(order, isStale) {
+    const checkStale = () => { if (isStale && isStale()) throw makeStaleError(); };
+    // アプリ全体の CSS（style.css）の影響を受けないよう、独立した小さなページ（iframe）で描画する。
+    // 印刷では画面幅に応じた文字サイズ等が用紙幅で決まるため、アプリ画面の中で描くと見た目がずれる。
+    // 実際の印刷では紙面を用紙幅（210mm ≒ 794px）で組み、余白 15mm を除いた 180mm に縮小して印刷される。
+    // PDF も同じく 794px 幅で描いてから 180mm 幅に縮めて配置し、見た目を合わせる。
+    const htmls = [
+        generateCustomerCopyHtml(order),
+        generatePrintHtmlForPaper(order),
+        generatePrintHtmlForPaper(order, '部門控え')
+    ];
+    const doc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'
+        + '<style>' + toPdfRenderCss(PRINT_AREA_CSS) + '</style></head>'
+        + '<body style="margin:0;background:#fff;"><div id="pdf-render-root">'
+        + htmls.map(h => '<div class="pdf-page" style="background:#fff;">' + h + '</div>').join('')
+        // 印刷時の最終オーバーライドは本文の後ろに置く（実際の印刷と同じ順番）
+        + '<style>' + toPdfRenderCss(PRINT_OVERRIDE_CSS) + '</style>'
+        + '</div></body></html>';
+
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.tabIndex = -1;
+    frame.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 794px; height: 4000px; border: 0; visibility: hidden; pointer-events: none;';
+    const loaded = withTimeout(new Promise(resolve => frame.addEventListener('load', resolve, { once: true })), 10000);
+    frame.srcdoc = doc;
+    document.body.appendChild(frame);
+    try {
+        await loaded;
+        checkStale();
+        const fdoc = frame.contentDocument;
+        if (fdoc.fonts && fdoc.fonts.ready) await waitOrContinue(fdoc.fonts.ready, 5000);
+        await Promise.all(Array.from(fdoc.querySelectorAll('img')).map(img =>
+            img.complete ? Promise.resolve() : waitOrContinue(new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            }), 5000)
+        ));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        checkStale();
+        // 内容の高さに合わせる（固定の高さに頼らない）
+        frame.style.height = Math.max(fdoc.documentElement.scrollHeight, fdoc.body.scrollHeight) + 'px';
+        await new Promise(r => requestAnimationFrame(r));
+        checkStale();
+
+        const origImgs = Array.from(fdoc.querySelectorAll('img'));
+        // html2canvas は image-rendering: pixelated を無視するため、QRコードは描画用の複製の中だけ
+        // 補間なしで拡大した画像に差し替える（設定データには触れない）
+        const onclone = (clonedDoc) => {
+            const clonedImgs = Array.from(clonedDoc.querySelectorAll('img'));
+            clonedImgs.forEach((cimg, idx) => {
+                const orig = origImgs[idx];
+                if (!orig || !/^data:image/.test(orig.getAttribute('src') || '')) return;
+                const rect = orig.getBoundingClientRect();
+                if (rect.width < 40 || rect.height < 40 || !orig.naturalWidth) return;
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(rect.width * 2);
+                    c.height = Math.round(rect.height * 2);
+                    const ctx = c.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(orig, 0, 0, c.width, c.height);
+                    cimg.src = c.toDataURL('image/png');
+                    cimg.style.width = rect.width + 'px';
+                    cimg.style.height = rect.height + 'px';
+                    c.width = c.height = 0;
+                } catch (e) { /* 差し替えできなければそのまま */ }
+            });
+        };
+
+        const pages = Array.from(fdoc.querySelectorAll('.pdf-page'));
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        let firstPdfPage = true;
+        for (let i = 0; i < pages.length; i++) {
+            checkStale();
+            const pageEl = pages[i];
+            const breaks = collectPdfBreakPositions(pageEl);
+            const elH = pageEl.offsetHeight;
+            // iOS のキャンバス面積の上限（約1677万px）を超えないよう倍率を下げる
+            const h = pageEl.offsetHeight;
+            const scale = Math.max(1, Math.min(2, Math.floor(Math.sqrt(16000000 / (794 * Math.max(h, 1))) * 100) / 100));
+            const renderPage = sc => html2canvas(pageEl, { scale: sc, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794, onclone });
+            let canvas = await renderPage(scale);
+            if (!canvas.width || !canvas.height) {
+                canvas.width = canvas.height = 0;
+                canvas = await renderPage(1);
+                if (!canvas.width || !canvas.height) throw new Error('キャンバスの作成に失敗しました');
+            }
+            try {
+                checkStale();
+                const pageHeightPx = Math.floor(canvas.width * 267 / 180);
+                if (canvas.height <= pageHeightPx) {
+                    // 1ページに収まる：縮めずそのまま配置
+                    const h = 180 * canvas.height / canvas.width;
+                    if (!firstPdfPage) pdf.addPage();
+                    firstPdfPage = false;
+                    pdf.addImage(canvas, 'PNG', 15, 15, 180, h, undefined, 'FAST'); // 劣化しない形式（JPEGだと白地に圧縮ムラが出る）
+                } else {
+                    // 長い場合は縮めずに、行の切れ目で縦に分けて複数ページにする
+                    const ratio = canvas.height / (elH || canvas.height);
+                    let start = 0;
+                    while (start < canvas.height) {
+                        let end = start + pageHeightPx;
+                        if (end >= canvas.height) {
+                            end = canvas.height;
+                        } else {
+                            let best = -1;
+                            for (const b of breaks) {
+                                const bp = b * ratio;
+                                if (bp - start <= pageHeightPx && bp > start + 1) best = bp;
+                            }
+                            if (best > 0) end = Math.min(Math.round(best), canvas.height);
+                            if (end <= start + 1) end = start + pageHeightPx;
+                        }
+                        const sliceH = Math.min(end, canvas.height) - start;
+                        if (sliceH < 4) break;
+                        const slice = document.createElement('canvas');
+                        slice.width = canvas.width;
+                        slice.height = sliceH;
+                        const ctx = slice.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, slice.width, slice.height);
+                        ctx.drawImage(canvas, 0, start, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                        if (!firstPdfPage) pdf.addPage();
+                        firstPdfPage = false;
+                        pdf.addImage(slice, 'PNG', 15, 15, 180, 180 * sliceH / canvas.width, undefined, 'FAST');
+                        slice.width = slice.height = 0;
+                        start += sliceH;
+                    }
+                }
+            } finally {
+                canvas.width = canvas.height = 0;
+            }
+        }
+        checkStale();
+        return new File([pdf.output('blob')], pdfFileNameForOrder(order), { type: 'application/pdf' });
+    } finally {
+        frame.remove();
+    }
+}
+
+let preparedSharePdf = null; // { orderId, file }
+let sharePdfToken = 0;
+let standalonePrintState = '';
+let lastShareAt = 0;        // 直前に共有画面を開こうとした時刻（同じタップでの二重呼び出し防止）
+let sharingStartedAt = 0;   // sharing 状態になった時刻
+let shareAttempt = 0;       // 共有の試行番号（リセットされた試行の遅い結果を無視するため）
+
+const PRINT_HELP_MESSAGES = {
+    'preparing': '準備しています。少しお待ちください…',
+    'ready': '次に出る一覧から「プリント」（プリンターの絵）を押してください。見つからないときは、一覧を指で上にずらしてください。',
+    'cancelled': 'プリントを中止しました。もう一度「プリントする」を押すとやり直せます。',
+    'share-error': 'プリントの画面を開けませんでした。もう一度「プリントする」を押してください。',
+    'prepare-error': 'プリントの準備ができませんでした。「もう一度ためす」を押してください。何度もできないときは、アプリを閉じて開き直してから、もう一度お試しください。',
+    // ホーム画面アプリと Safari は保存データが別のため、「Safari で開く」は案内しない（注文が見つからない）
+    'unsupported': 'このiPadでは、ホーム画面のアプリから直接プリントできません。iPadの「設定」→「一般」→「ソフトウェアアップデート」で、iPadOSを最新にしてください。'
+};
+
+// ホーム画面アプリ用：ボタンと案内文の状態を切り替える（ボタンの文言は prepare-error のときだけ変わる）
+function setStandalonePrintState(state, message) {
+    const btn = document.getElementById('download-pdf-btn');
+    const help = document.getElementById('print-help');
+    const labelEl = btn.querySelector('.btn-label');
+    standalonePrintState = state;
+    // sharing 中も押せるままにする（共有画面が閉じた通知が来ない場合に備える）
+    btn.disabled = (state === 'preparing' || state === 'unsupported');
+    if (labelEl) labelEl.textContent = state === 'prepare-error' ? 'もう一度ためす' : 'プリントする';
+    if (!help) return;
+    // sharing は直前の案内文をそのまま残す
+    if (state !== 'sharing') {
+        const text = message || PRINT_HELP_MESSAGES[state] || '';
+        help.textContent = '';
+        if (state === 'preparing') {
+            const spinner = document.createElement('span');
+            spinner.className = 'print-help-spinner';
+            spinner.setAttribute('aria-hidden', 'true');
+            help.appendChild(spinner);
+        }
+        help.appendChild(document.createTextNode(text));
+    }
+    help.hidden = false;
+}
+
+// 通常表示（Safari・PC）用：従来どおりのボタン表示に戻す
+function resetPrintButtonForBrowser() {
+    const btn = document.getElementById('download-pdf-btn');
+    const help = document.getElementById('print-help');
+    const labelEl = btn.querySelector('.btn-label');
+    standalonePrintState = '';
+    btn.disabled = false;
+    if (labelEl) labelEl.textContent = '印刷';
+    if (help) { help.hidden = true; help.textContent = ''; }
+}
+
+function showToast(message) {
+    const old = document.querySelector('.app-toast');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'app-toast';
+    el.setAttribute('role', 'status');
+    el.textContent = message;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
+
+function withTimeout(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function prepareSharePdf(order, token) {
+    try {
+        // PDFを共有できない端末では、ライブラリも読み込まずに案内だけ出す
+        if (!canSharePdfFiles()) {
+            preparedSharePdf = null;
+            setStandalonePrintState('unsupported');
+            return;
+        }
+        const isStale = () => token !== sharePdfToken;
+        // 同時に1つだけ作る（古いものは最初の確認で素早く中止される）
+        const job = pdfJobChain.catch(() => {}).then(async () => {
+            if (isStale()) throw makeStaleError();
+            await loadPdfLibs();
+            return buildOrderPdfFile(order, isStale);
+        });
+        // 時間切れでも後続の作成が止まらないよう、タイムアウト付きの Promise を連鎖させる
+        const timed = withTimeout(job, 60000);
+        pdfJobChain = timed.catch(() => {});
+        const file = await timed;
+        if (token !== sharePdfToken) return;
+        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+            throw new Error('このアプリではPDFを共有できません');
+        }
+        preparedSharePdf = { orderId: order.id, file };
+        setStandalonePrintState('ready');
+    } catch (err) {
+        if (err && err.name === 'StalePdfJob') return;
+        if (token !== sharePdfToken) return;
+        console.warn('PDFの準備に失敗しました', err);
+        preparedSharePdf = null;
+        setStandalonePrintState('prepare-error');
+    }
+}
+
+function startSharePdfPreparationIfStandalone(order) {
+    const token = ++sharePdfToken;
+    preparedSharePdf = null;
+    lastShareAt = 0;
+    shareAttempt++;
+    if (!isStandaloneApp()) {
+        resetPrintButtonForBrowser();
+        return;
+    }
+    setStandalonePrintState('preparing');
+    prepareSharePdf(order, token);
+}
+
+// ホーム画面アプリでの「プリントする」ボタン
+function handleStandalonePrintClick(order) {
+    if (standalonePrintState === 'prepare-error') {
+        startSharePdfPreparationIfStandalone(order);
+        return;
+    }
+    if (!preparedSharePdf || preparedSharePdf.orderId !== order.id) return; // 準備中などは何もしない
+    const now = Date.now();
+    if (now - lastShareAt < 800) return; // 同じタップでの二重呼び出しを防ぐ
+    lastShareAt = now;
+    const token = sharePdfToken;
+    const attempt = shareAttempt;
+    if (standalonePrintState !== 'sharing') sharingStartedAt = now;
+    setStandalonePrintState('sharing');
+    // navigator.share は、タップの処理の中で同期的に呼ぶ必要がある
+    const onSuccess = () => {
+        if (attempt !== shareAttempt) return; // すでに状態を戻した試行の遅い結果は無視する
+        let recorded = true;
+        try {
+            updateOrder(order.id, { isPrinted: true });
+            renderOrdersList();
+        } catch (e) {
+            recorded = false;
+            console.warn('印刷済みの記録に失敗しました', e);
+        }
+        printModal.classList.remove('active');
+        showToast(recorded ? '印刷済みにしました（印刷しなかったときは一覧の「未印刷に戻す」で戻せます）' : 'プリントの画面を開きました（印刷済みの記録はできませんでした）');
+    };
+    const onError = err => {
+        // プレビューが閉じられた・別の注文に変わった場合は、新しい画面の状態に触れない
+        if (token !== sharePdfToken || attempt !== shareAttempt || !printModal.classList.contains('active')) return;
+        if (err && err.name === 'AbortError') setStandalonePrintState('cancelled');
+        else if (err && err.name === 'InvalidStateError') setStandalonePrintState('ready'); // すでに共有画面が開いている
+        else setStandalonePrintState('share-error');
+    };
+    let sharePromise;
+    try {
+        sharePromise = navigator.share({ files: [preparedSharePdf.file] });
+    } catch (err) {
+        sharePromise = Promise.reject(err);
+    }
+    sharePromise.then(onSuccess, onError);
+}
+
+// 共有画面を閉じたのに結果が届かない場合（一部のiOS）に備え、画面に戻ったとき 3 秒以上 sharing なら ready に戻す
+function recoverFromStuckSharing() {
+    if (standalonePrintState !== 'sharing') return;
+    if (Date.now() - sharingStartedAt <= 3000) return;
+    if (!printModal.classList.contains('active')) return;
+    shareAttempt++; // 以前の共有の遅い結果を無視する
+    setStandalonePrintState('ready');
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') recoverFromStuckSharing();
+});
+window.addEventListener('focus', recoverFromStuckSharing);
+
+// プレビューが閉じられたら準備済みPDFを破棄し、ボタンと案内文も戻す（どの閉じ方でも）
+new MutationObserver(() => {
+    if (!printModal.classList.contains('active')) {
+        sharePdfToken++;
+        preparedSharePdf = null;
+        lastShareAt = 0;
+        shareAttempt++;
+        const help = document.getElementById('print-help');
+        if (help) { help.hidden = true; help.textContent = ''; }
+        const btn = document.getElementById('download-pdf-btn');
+        const labelEl = btn.querySelector('.btn-label');
+        btn.disabled = false;
+        standalonePrintState = '';
+        if (labelEl) labelEl.textContent = isStandaloneApp() ? 'プリントする' : '印刷';
+    }
+}).observe(printModal, { attributes: true, attributeFilter: ['class'] });
+
 // 一覧に戻るボタン
 backToListBtn.addEventListener('click', () => {
     printModal.classList.remove('active');
@@ -1793,7 +2301,7 @@ backToListBtn.addEventListener('click', () => {
 });
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
-document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); }));
+document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal && modal.id !== 'print-modal') modal.classList.remove('active'); }));
 
 const settingStoreNameInput = document.getElementById('setting-store-name');
 const settingStorePhoneInput = document.getElementById('setting-store-phone');
@@ -1830,7 +2338,7 @@ loadSettingsForm();
 // 設定画面の一番下にバージョンを表示（iPadで最新版が読み込まれているかの確認にも使う）
 (() => {
     const el = document.getElementById('app-version');
-    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）`;
+    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）` + (isStandaloneApp() ? '・ホーム画面アプリ' : '');
 })();
 
 settingInstagramQrInput.addEventListener('change', () => {

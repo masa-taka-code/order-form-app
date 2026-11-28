@@ -2069,3 +2069,28 @@ body.modal-open { overflow: hidden; }
   .store-unset-notice[hidden] { display: none; }
 }
 @media print { .store-unset-notice { display: none !important; } }
+
+/* ホーム画面アプリ：PDF準備中のボタン */
+@media screen {
+  #download-pdf-btn:disabled { opacity: .6; cursor: default; }
+}
+
+/* ===== プリント（ホーム画面アプリ） v1.10 ===== */
+@media screen {
+  #print-modal .modal-actions { flex-wrap: wrap; }
+  .print-help { flex-basis: 100%; font-size: 0.95rem; color: var(--text-primary); margin: 10px 0 0; text-align: center; line-height: 1.5; display: flex; gap: .5em; align-items: center; justify-content: center; flex-wrap: wrap; }
+  .print-help[hidden] { display: none; }
+  .print-help-spinner { width: 16px; height: 16px; box-sizing: border-box; border: 2px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: print-help-spin 0.8s linear infinite; flex: none; }
+  @keyframes print-help-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .print-help-spinner { animation: none; } }
+  .app-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 1100; background: var(--text-primary); color: #fff; padding: 12px 20px; border-radius: 999px; font-weight: 600; max-width: calc(100% - 32px); text-align: center; box-shadow: var(--shadow); }
+}
+@media print { .app-toast { display: none !important; } }
+
+/* ===== 保存した注文のハイライト v1.11 ===== */
+@media screen {
+  .order-card.just-saved { box-shadow: 0 0 0 4px var(--primary-color), var(--shadow); animation: savedPulse 1.2s ease-out 2; }
+  .order-card.just-saved:focus { outline: none; }
+  @keyframes savedPulse { from { background: var(--primary-soft); } }
+  @media (prefers-reduced-motion: reduce) { .order-card.just-saved { animation: none; } }
+}
