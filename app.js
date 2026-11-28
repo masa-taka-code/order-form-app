@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.12.1';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -280,8 +280,14 @@ function getLocalDateString(date = new Date()) {
     return `${y}-${m}-${d}`;
 }
 
+// 新規入力フォームの日付の初期値（受付日・お受け取り日）。日付が変わったときの更新判定にも使う
+let formDefaultDate = '';
+
 function initForm() {
-    document.getElementById('reception-date').value = getLocalDateString();
+    formDefaultDate = getLocalDateString();
+    document.getElementById('reception-date').value = formDefaultDate;
+    // お受け取り日時の日付は、アプリを開いた日（今日）を初期値にする（時刻の初期値は12時のまま）
+    document.getElementById('order-date').value = formDefaultDate;
     productsContainer.innerHTML = '';
     addProductRow();
     updateTotal();
@@ -2655,7 +2661,20 @@ function useCustomerForOrderByName(name) {
 })();
 
 // ===== 日付依存ラベルの自動更新（iPadを開きっぱなしでも最新に） =====
+// 開いたまま日付が変わったとき、新規入力フォームで初期値のまま触っていない日付だけを今日に更新する
+// （編集中や、利用者が日付を変えた場合はそのまま。保存データには触れない）
+function refreshFormDefaultDates() {
+    const today = getLocalDateString();
+    if (!formDefaultDate || today === formDefaultDate || editingOrderId) return;
+    ['reception-date', 'order-date'].forEach(elId => {
+        const el = document.getElementById(elId);
+        if (el && el.value === formDefaultDate) el.value = today;
+    });
+    formDefaultDate = today;
+}
+
 function refreshTimeSensitiveViews() {
+    refreshFormDefaultDates();
     if (document.querySelector('.modal.active')) return;
     const active = Array.from(tabContents).find(c => c.classList.contains('active'));
     if (!active) return;
