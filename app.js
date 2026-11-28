@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.11.2';
+const APP_VERSION = '1.12.0';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1178,7 +1178,7 @@ function showPrintPreview(id) {
         </div>
     `;
     printModal.classList.add('active');
-    startSharePdfPreparationIfStandalone(order);
+    startSharePdfPreparationIfNeeded(order);
 }
 
 // 印刷用の紙面CSS（executePrintForOrder の @media print 内にそのまま埋め込まれる。PDF生成でも共用）
@@ -1813,8 +1813,8 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
 
-    // ホーム画面アプリ：window.print() が動かないため、共有メニュー経由のみ（印刷へは切り替えない）
-    if (isStandaloneApp()) {
+    // iPad/iPhone：PDFを作って共有メニュー経由でプリント（ホーム画面アプリでは window.print() が動かず、Safari では URL が印刷されるため）
+    if (usesSharePrint()) {
         handleStandalonePrintClick(order);
         return;
     }
@@ -1830,15 +1830,27 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     });
 });
 
-// ===== ホーム画面アプリ（全画面モード）向け：PDFを作って共有メニューからプリント =====
-// ホーム画面から起動した場合 window.print() が動かないため、プレビューを開いた時点でPDFを作っておき、
-// 印刷ボタンで共有メニュー（navigator.share）を開く。通常のSafariでは何も読み込まず従来どおり。
+// ===== iPad/iPhone（Safari・ホーム画面アプリ）向け：PDFを作って共有メニューからプリント =====
+// ホーム画面アプリでは window.print() が動かず、Safari では印刷時にページのURLが付いてしまう（消せない）ため、
+// プレビューを開いた時点でPDFを作っておき、印刷ボタンで共有メニュー（navigator.share）を開く。
+// PCなど iPad/iPhone 以外、およびPDFを共有できない古いSafariでは何も読み込まず従来どおり window.print() を使う。
 function isStandaloneApp() {
     // iOS / iPadOS のホーム画面アプリのみ（他のOSのインストール型アプリは対象外）
     const nav = window.navigator;
     return nav.standalone === true ||
         (!!window.matchMedia && window.matchMedia('(display-mode: standalone)').matches &&
             (/iP(hone|ad|od)/.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)));
+}
+
+// iPhone / iPad / iPod（iPadOS のデスクトップ表示の Safari を含む）
+function isAppleMobileDevice() {
+    const nav = window.navigator;
+    return /iP(hone|ad|od)/.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+}
+
+// 共有メニュー経由のプリントを使うか（ホーム画面アプリは常に。Safari はPDFを共有できる場合のみ）
+function usesSharePrint() {
+    return isStandaloneApp() || (isAppleMobileDevice() && canSharePdfFiles());
 }
 
 // 画面表示待ちが止まらないよう、待ち時間に上限を付けた Promise（時間切れでも reject せず続行する）
@@ -2175,7 +2187,7 @@ function withTimeout(promise, ms) {
 async function prepareSharePdf(order, token) {
     try {
         // PDFを共有できない端末では、ライブラリも読み込まずに案内だけ出す
-        if (!canSharePdfFiles()) {
+        if (isStandaloneApp() && !canSharePdfFiles()) {
             preparedSharePdf = null;
             setStandalonePrintState('unsupported');
             return;
@@ -2206,12 +2218,12 @@ async function prepareSharePdf(order, token) {
     }
 }
 
-function startSharePdfPreparationIfStandalone(order) {
+function startSharePdfPreparationIfNeeded(order) {
     const token = ++sharePdfToken;
     preparedSharePdf = null;
     lastShareAt = 0;
     shareAttempt++;
-    if (!isStandaloneApp()) {
+    if (!usesSharePrint()) {
         resetPrintButtonForBrowser();
         return;
     }
@@ -2222,7 +2234,7 @@ function startSharePdfPreparationIfStandalone(order) {
 // ホーム画面アプリでの「プリントする」ボタン
 function handleStandalonePrintClick(order) {
     if (standalonePrintState === 'prepare-error') {
-        startSharePdfPreparationIfStandalone(order);
+        startSharePdfPreparationIfNeeded(order);
         return;
     }
     if (!preparedSharePdf || preparedSharePdf.orderId !== order.id) return; // 準備中などは何もしない
@@ -2289,7 +2301,7 @@ new MutationObserver(() => {
         const labelEl = btn.querySelector('.btn-label');
         btn.disabled = false;
         standalonePrintState = '';
-        if (labelEl) labelEl.textContent = isStandaloneApp() ? 'プリントする' : '印刷';
+        if (labelEl) labelEl.textContent = usesSharePrint() ? 'プリントする' : '印刷';
     }
 }).observe(printModal, { attributes: true, attributeFilter: ['class'] });
 
@@ -2338,7 +2350,7 @@ loadSettingsForm();
 // 設定画面の一番下にバージョンを表示（iPadで最新版が読み込まれているかの確認にも使う）
 (() => {
     const el = document.getElementById('app-version');
-    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）` + (isStandaloneApp() ? '・ホーム画面アプリ' : '');
+    if (el) el.textContent = `バージョン ${APP_VERSION}（${formatDate(APP_UPDATED)} 更新）` + (isStandaloneApp() ? '・ホーム画面アプリ・共有からプリント' : (usesSharePrint() ? '・共有からプリント' : ''));
 })();
 
 settingInstagramQrInput.addEventListener('change', () => {
