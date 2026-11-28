@@ -2069,3 +2069,8 @@ body.modal-open { overflow: hidden; }
   .store-unset-notice[hidden] { display: none; }
 }
 @media print { .store-unset-notice { display: none !important; } }
+
+/* ホーム画面アプリ：PDF準備中のボタン */
+@media screen {
+  #download-pdf-btn:disabled { opacity: .6; cursor: default; }
+}

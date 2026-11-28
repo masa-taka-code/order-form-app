@@ -2,8 +2,8 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.8.3';
-const APP_UPDATED = '2026-11-25';
+const APP_VERSION = '1.9.0';
+const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
 // 外部読み込みなしでオフラインでも表示できるよう、ここに直接書き込んでいる。
@@ -1149,33 +1149,11 @@ function showPrintPreview(id) {
         </div>
     `;
     printModal.classList.add('active');
+    startSharePdfPreparationIfStandalone(order);
 }
 
-// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
-// iPad Safari対策：新規ウィンドウを使わず、現在のページ内の #print-area を印刷する。
-// window.print() はクリック操作と同じ呼び出しスタック内で同期的に呼ぶ。
-// onAfterPrint: 印刷ダイアログ終了後（afterprint）に呼ばれるコールバック（任意）
-function executePrintForOrder(order, onAfterPrint) {
-    const customerCopyHtml = generateCustomerCopyHtml(order);
-    const storeCopyHtml = generatePrintHtmlForPaper(order);
-    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
-
-    // 既存の印刷領域があれば削除
-    const oldArea = document.getElementById('print-area');
-    if (oldArea) oldArea.remove();
-
-    // 印刷専用CSS（画面表示に影響しないよう全て @media print 内に限定）
-    const printCss = `
-        /* 画面上では印刷領域を非表示 */
-        #print-area { display: none; }
-
-        @media print {
-            /* 印刷領域以外を非表示 */
-            body > *:not(#print-area) { display: none !important; }
-            #print-area { display: block !important; }
-
-
-        /* === リセット === */
+// 印刷用の紙面CSS（executePrintForOrder の @media print 内にそのまま埋め込まれる。PDF生成でも共用）
+const PAPER_BASE_CSS = `        /* === リセット === */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         /* === 紙コンテナ（A4基準） === */
@@ -1322,7 +1300,23 @@ function executePrintForOrder(order, onAfterPrint) {
         .page-break {
             page-break-after: always;
             break-after: page;
-        }
+        }`;
+
+// 注文データを受け取って直接印刷を実行（お客様控え＋店舗控え＋部門控えの3ページ一括）
+// iPad Safari対策：新規ウィンドウを使わず、現在のページ内の #print-area を印刷する。
+// window.print() はクリック操作と同じ呼び出しスタック内で同期的に呼ぶ。
+// 印刷領域のCSS（実際の印刷と、ホーム画面アプリ用のPDF作成で同じものを使う）
+const PRINT_AREA_CSS = `
+        /* 画面上では印刷領域を非表示 */
+        #print-area { display: none; }
+
+        @media print {
+            /* 印刷領域以外を非表示 */
+            body > *:not(#print-area) { display: none !important; }
+            #print-area { display: block !important; }
+
+
+${PAPER_BASE_CSS}
         
         /* === 印刷時のスタイル === */
         @media print {
@@ -1366,9 +1360,8 @@ function executePrintForOrder(order, onAfterPrint) {
         }
     `;
 
-    // 印刷時の最終オーバーライド。各控えのHTML内の <style>（@page margin:0 など）より
-    // 後ろに置かないと負けるため、必ず本文の後に挿入する
-    const printOverrideCss = `
+// 印刷時の最終オーバーライド（本文の後ろに置く）
+const PRINT_OVERRIDE_CSS = `
         @media print {
             .paper {
                 min-height: auto !important;
@@ -1386,6 +1379,23 @@ function executePrintForOrder(order, onAfterPrint) {
             }
         }
     `;
+
+// onAfterPrint: 印刷ダイアログ終了後（afterprint）に呼ばれるコールバック（任意）
+function executePrintForOrder(order, onAfterPrint) {
+    const customerCopyHtml = generateCustomerCopyHtml(order);
+    const storeCopyHtml = generatePrintHtmlForPaper(order);
+    const departmentCopyHtml = generatePrintHtmlForPaper(order, '部門控え');
+
+    // 既存の印刷領域があれば削除
+    const oldArea = document.getElementById('print-area');
+    if (oldArea) oldArea.remove();
+
+    // 印刷専用CSS（画面表示に影響しないよう全て @media print 内に限定）
+    const printCss = PRINT_AREA_CSS;
+
+    // 印刷時の最終オーバーライド。各控えのHTML内の <style>（@page margin:0 など）より
+    // 後ろに置かないと負けるため、必ず本文の後に挿入する
+    const printOverrideCss = PRINT_OVERRIDE_CSS;
 
     // 印刷領域を作成（3ページ：お客様控え→店舗控え→部門控え）
     const printArea = document.createElement('div');
@@ -1774,6 +1784,22 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
 
+    // ホーム画面アプリ：準備済みのPDFを共有メニューへ（navigator.share は同期的に呼ぶ）
+    if (preparedSharePdf && preparedSharePdf.orderId === order.id && navigator.share) {
+        const file = preparedSharePdf.file;
+        navigator.share({ files: [file], title: 'ご注文承り書' })
+            .then(() => {
+                printModal.classList.remove('active');
+                updateOrder(order.id, { isPrinted: true });
+                renderOrdersList();
+            })
+            .catch(err => {
+                if (err && err.name === 'AbortError') return; // キャンセル：何もしない
+                alert('共有メニューを開けませんでした。もう一度お試しください。');
+            });
+        return;
+    }
+
     // 現在のページ内で印刷（印刷ダイアログを開いてPDF保存も可能）
     // 印刷済みの記録は、印刷ダイアログが閉じた後（afterprint）に行う
     executePrintForOrder(order, () => {
@@ -1784,6 +1810,183 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
         renderOrdersList();
     });
 });
+
+// ===== ホーム画面アプリ（全画面モード）向け：PDFを作って共有メニューからプリント =====
+// ホーム画面から起動した場合 window.print() が動かないため、プレビューを開いた時点でPDFを作っておき、
+// 印刷ボタンで共有メニュー（navigator.share）を開く。通常のSafariでは何も読み込まず従来どおり。
+function isStandaloneApp() {
+    return window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+
+const scriptLoadPromises = {};
+function loadScriptOnce(src) {
+    if (!scriptLoadPromises[src]) {
+        scriptLoadPromises[src] = new Promise((resolve, reject) => {
+            const el = document.createElement('script');
+            el.src = src;
+            el.onload = () => resolve();
+            el.onerror = () => { delete scriptLoadPromises[src]; reject(new Error('読み込みに失敗: ' + src)); };
+            document.head.appendChild(el);
+        });
+    }
+    return scriptLoadPromises[src];
+}
+
+function loadPdfLibs() {
+    return Promise.all([
+        loadScriptOnce('vendor/html2canvas-1.4.1.min.js'),
+        loadScriptOnce('vendor/jspdf-2.5.2.umd.min.js')
+    ]);
+}
+
+// 印刷時（executePrintForOrder）と同じ見た目になるよう、紙面CSSを #pdf-render-root 配下に限定して画面に適用する
+// 実際の印刷用CSSを、PDF作成用（画面上での描画）に変換する。
+// - @media print の中身は有効にし、@media screen と @page は除く
+// - 印刷領域の表示切替（body > * / #print-area 単体）の指定は除く
+// - セレクタの先頭に :where(#pdf-render-root) を付ける。:where は優先度を上げないため、
+//   各控えのHTML内の <style> が後から上書きする関係が実際の印刷と同じになる
+function toPdfRenderCss(css) {
+    const src = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    let out = '';
+    let i = 0;
+    while (i < src.length) {
+        const open = src.indexOf('{', i);
+        if (open === -1) break;
+        const head = src.slice(i, open).trim();
+        // 対応する閉じ括弧を探す（入れ子に対応）
+        let depth = 1, j = open + 1;
+        while (j < src.length && depth > 0) {
+            if (src[j] === '{') depth++;
+            else if (src[j] === '}') depth--;
+            j++;
+        }
+        const body = src.slice(open + 1, j - 1);
+        i = j;
+        if (/^@media\b/.test(head)) {
+            if (/\bprint\b/.test(head)) out += toPdfRenderCss(body);
+            continue; // @media screen など、印刷以外は使わない
+        }
+        if (/^@/.test(head)) continue; // @page など
+        const selectors = head.split(',').map(x => x.trim()).filter(Boolean)
+            .filter(x => !/^(html|body)\b/.test(x) && x !== '#print-area')
+            .map(x => ':where(#pdf-render-root) ' + x.replace(/^#print-area\s+/, ''));
+        if (selectors.length) out += selectors.join(', ') + ' {' + body + '}\n';
+    }
+    return out;
+}
+
+function buildPdfRenderCss() {
+    return toPdfRenderCss(PRINT_AREA_CSS);
+}
+
+async function buildOrderPdfFile(order) {
+    // アプリ全体の CSS（style.css）の影響を受けないよう、独立した小さなページ（iframe）で描画する。
+    // 印刷では画面幅に応じた文字サイズ等が用紙幅で決まるため、アプリ画面の中で描くと見た目がずれる。
+    // 実際の印刷では紙面を用紙幅（210mm ≒ 794px）で組み、余白 15mm を除いた 180mm に縮小して印刷される。
+    // PDF も同じく 794px 幅で描いてから 180mm 幅に縮めて配置し、見た目を合わせる。
+    const htmls = [
+        generateCustomerCopyHtml(order),
+        generatePrintHtmlForPaper(order),
+        generatePrintHtmlForPaper(order, '部門控え')
+    ];
+    const doc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'
+        + '<style>' + toPdfRenderCss(PRINT_AREA_CSS) + '</style></head>'
+        + '<body style="margin:0;background:#fff;"><div id="pdf-render-root">'
+        + htmls.map(h => '<div class="pdf-page" style="background:#fff;">' + h + '</div>').join('')
+        // 印刷時の最終オーバーライドは本文の後ろに置く（実際の印刷と同じ順番）
+        + '<style>' + toPdfRenderCss(PRINT_OVERRIDE_CSS) + '</style>'
+        + '</div></body></html>';
+
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.tabIndex = -1;
+    frame.style.cssText = 'position: fixed; left: -10000px; top: 0; width: 794px; height: 4000px; border: 0; visibility: hidden; pointer-events: none;';
+    const loaded = new Promise(resolve => frame.addEventListener('load', resolve, { once: true }));
+    frame.srcdoc = doc;
+    document.body.appendChild(frame);
+    try {
+        await loaded;
+        const fdoc = frame.contentDocument;
+        if (fdoc.fonts && fdoc.fonts.ready) await fdoc.fonts.ready;
+        await Promise.all(Array.from(fdoc.querySelectorAll('img')).map(img =>
+            img.complete ? Promise.resolve() : new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            })
+        ));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const pages = Array.from(fdoc.querySelectorAll('.pdf-page'));
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        for (let i = 0; i < pages.length; i++) {
+            const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794 });
+            if (i > 0) pdf.addPage();
+            const image = canvas.toDataURL('image/png'); // 劣化しない形式（JPEGだと白地に圧縮ムラが出る）
+            let w = 180;
+            let h = 180 * canvas.height / canvas.width;
+            if (h > 267) {
+                w = w * 267 / h;
+                h = 267;
+            }
+            const x = 15 + (180 - w) / 2;
+            pdf.addImage(image, 'PNG', x, 15, w, h, undefined, 'FAST');
+        }
+        return new File([pdf.output('blob')], 'ご注文承り書.pdf', { type: 'application/pdf' });
+    } finally {
+        frame.remove();
+    }
+}
+
+let preparedSharePdf = null; // { orderId, file }
+let sharePdfToken = 0;
+
+function setPrintButtonState(disabled, label) {
+    const btn = document.getElementById('download-pdf-btn');
+    btn.disabled = disabled;
+    const labelEl = btn.querySelector('.btn-label');
+    if (labelEl) labelEl.textContent = label;
+}
+
+async function prepareSharePdf(order, token) {
+    try {
+        await loadPdfLibs();
+        const file = await buildOrderPdfFile(order);
+        if (token !== sharePdfToken) return;
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            preparedSharePdf = { orderId: order.id, file };
+            setPrintButtonState(false, '共有してプリント');
+        } else {
+            preparedSharePdf = null;
+            setPrintButtonState(false, '印刷');
+        }
+    } catch (err) {
+        if (token !== sharePdfToken) return;
+        console.warn('PDFの準備に失敗しました', err);
+        preparedSharePdf = null;
+        setPrintButtonState(false, '印刷');
+    }
+}
+
+function startSharePdfPreparationIfStandalone(order) {
+    const token = ++sharePdfToken;
+    preparedSharePdf = null;
+    if (!isStandaloneApp()) {
+        setPrintButtonState(false, '印刷');
+        return;
+    }
+    setPrintButtonState(true, 'PDFを準備中…');
+    prepareSharePdf(order, token);
+}
+
+// プレビューが閉じられたら準備済みPDFを破棄する（どの閉じ方でも）
+new MutationObserver(() => {
+    if (!printModal.classList.contains('active')) {
+        sharePdfToken++;
+        preparedSharePdf = null;
+    }
+}).observe(printModal, { attributes: true, attributeFilter: ['class'] });
 
 // 一覧に戻るボタン
 backToListBtn.addEventListener('click', () => {
