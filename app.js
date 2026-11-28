@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.10.1';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1784,19 +1784,9 @@ document.getElementById('download-pdf-btn').addEventListener('click', () => {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
 
-    // ホーム画面アプリ：準備済みのPDFを共有メニューへ（navigator.share は同期的に呼ぶ）
-    if (preparedSharePdf && preparedSharePdf.orderId === order.id && navigator.share) {
-        const file = preparedSharePdf.file;
-        navigator.share({ files: [file], title: 'ご注文承り書' })
-            .then(() => {
-                printModal.classList.remove('active');
-                updateOrder(order.id, { isPrinted: true });
-                renderOrdersList();
-            })
-            .catch(err => {
-                if (err && err.name === 'AbortError') return; // キャンセル：何もしない
-                alert('共有メニューを開けませんでした。もう一度お試しください。');
-            });
+    // ホーム画面アプリ：window.print() が動かないため、共有メニュー経由のみ（印刷へは切り替えない）
+    if (isStandaloneApp()) {
+        handleStandalonePrintClick(order);
         return;
     }
 
@@ -1864,9 +1854,10 @@ function toPdfRenderCss(css) {
         const body = src.slice(open + 1, j - 1);
         i = j;
         if (/^@media\b/.test(head)) {
-            if (/\bprint\b/.test(head)) out += toPdfRenderCss(body);
-            continue; // @media screen など、印刷以外は使わない
+            if (/\bprint\b/.test(head) && !/\bnot\b/.test(head)) out += toPdfRenderCss(body);
+            continue; // @media screen や not print など、印刷以外は使わない
         }
+        if (/^@supports\b/.test(head)) { out += toPdfRenderCss(body); continue; } // 中身は print と同様に残す
         if (/^@/.test(head)) continue; // @page など
         const selectors = head.split(',').map(x => x.trim()).filter(Boolean)
             .filter(x => !/^(html|body)\b/.test(x) && x !== '#print-area')
@@ -1876,11 +1867,40 @@ function toPdfRenderCss(css) {
     return out;
 }
 
-function buildPdfRenderCss() {
-    return toPdfRenderCss(PRINT_AREA_CSS);
+function makeStaleError() {
+    const e = new Error('stale');
+    e.name = 'StalePdfJob';
+    return e;
 }
 
-async function buildOrderPdfFile(order) {
+function pdfFileNameForOrder(order) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec((order && order.receptionDate) || '');
+    let ymd;
+    if (m && !isNaN(new Date(+m[1], +m[2] - 1, +m[3]).getTime())) {
+        ymd = m[1] + m[2] + m[3];
+    } else {
+        const d = new Date();
+        ymd = String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    }
+    return 'ご注文承り書_' + ymd + '.pdf';
+}
+
+// 改ページ候補（ページ要素の上端からの CSS px）：行（tr）・店舗情報の下端と要素全体の高さ
+function collectPdfBreakPositions(pageEl) {
+    const top = pageEl.getBoundingClientRect().top;
+    const set = new Set();
+    pageEl.querySelectorAll('tr, .store-info').forEach(el => {
+        const bottom = el.getBoundingClientRect().bottom - top;
+        if (bottom > 0) set.add(Math.round(bottom * 100) / 100);
+    });
+    set.add(pageEl.offsetHeight);
+    return Array.from(set).sort((x, y) => x - y);
+}
+
+let pdfJobChain = Promise.resolve();
+
+async function buildOrderPdfFile(order, isStale) {
+    const checkStale = () => { if (isStale && isStale()) throw makeStaleError(); };
     // アプリ全体の CSS（style.css）の影響を受けないよう、独立した小さなページ（iframe）で描画する。
     // 印刷では画面幅に応じた文字サイズ等が用紙幅で決まるため、アプリ画面の中で描くと見た目がずれる。
     // 実際の印刷では紙面を用紙幅（210mm ≒ 794px）で組み、余白 15mm を除いた 180mm に縮小して印刷される。
@@ -1907,6 +1927,7 @@ async function buildOrderPdfFile(order) {
     document.body.appendChild(frame);
     try {
         await loaded;
+        checkStale();
         const fdoc = frame.contentDocument;
         if (fdoc.fonts && fdoc.fonts.ready) await fdoc.fonts.ready;
         await Promise.all(Array.from(fdoc.querySelectorAll('img')).map(img =>
@@ -1916,24 +1937,95 @@ async function buildOrderPdfFile(order) {
             })
         ));
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        checkStale();
+        // 内容の高さに合わせる（固定の高さに頼らない）
+        frame.style.height = Math.max(fdoc.documentElement.scrollHeight, fdoc.body.scrollHeight) + 'px';
+        await new Promise(r => requestAnimationFrame(r));
+        checkStale();
+
+        const origImgs = Array.from(fdoc.querySelectorAll('img'));
+        // html2canvas は image-rendering: pixelated を無視するため、QRコードは描画用の複製の中だけ
+        // 補間なしで拡大した画像に差し替える（設定データには触れない）
+        const onclone = (clonedDoc) => {
+            const clonedImgs = Array.from(clonedDoc.querySelectorAll('img'));
+            clonedImgs.forEach((cimg, idx) => {
+                const orig = origImgs[idx];
+                if (!orig || !/^data:image/.test(orig.getAttribute('src') || '')) return;
+                const rect = orig.getBoundingClientRect();
+                if (rect.width < 40 || rect.height < 40 || !orig.naturalWidth) return;
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(rect.width * 2);
+                    c.height = Math.round(rect.height * 2);
+                    const ctx = c.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(orig, 0, 0, c.width, c.height);
+                    cimg.src = c.toDataURL('image/png');
+                    cimg.style.width = rect.width + 'px';
+                    cimg.style.height = rect.height + 'px';
+                    c.width = c.height = 0;
+                } catch (e) { /* 差し替えできなければそのまま */ }
+            });
+        };
 
         const pages = Array.from(fdoc.querySelectorAll('.pdf-page'));
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        let firstPdfPage = true;
         for (let i = 0; i < pages.length; i++) {
-            const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794 });
-            if (i > 0) pdf.addPage();
-            const image = canvas.toDataURL('image/png'); // 劣化しない形式（JPEGだと白地に圧縮ムラが出る）
-            let w = 180;
-            let h = 180 * canvas.height / canvas.width;
-            if (h > 267) {
-                w = w * 267 / h;
-                h = 267;
+            checkStale();
+            const pageEl = pages[i];
+            const breaks = collectPdfBreakPositions(pageEl);
+            const elH = pageEl.offsetHeight;
+            const canvas = await html2canvas(pageEl, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 794, onclone });
+            try {
+                checkStale();
+                const pageHeightPx = Math.floor(canvas.width * 267 / 180);
+                if (canvas.height <= pageHeightPx) {
+                    // 1ページに収まる：縮めずそのまま配置
+                    const h = 180 * canvas.height / canvas.width;
+                    if (!firstPdfPage) pdf.addPage();
+                    firstPdfPage = false;
+                    pdf.addImage(canvas, 'PNG', 15, 15, 180, h, undefined, 'FAST'); // 劣化しない形式（JPEGだと白地に圧縮ムラが出る）
+                } else {
+                    // 長い場合は縮めずに、行の切れ目で縦に分けて複数ページにする
+                    const ratio = canvas.height / (elH || canvas.height);
+                    let start = 0;
+                    while (start < canvas.height) {
+                        let end = start + pageHeightPx;
+                        if (end >= canvas.height) {
+                            end = canvas.height;
+                        } else {
+                            let best = -1;
+                            for (const b of breaks) {
+                                const bp = b * ratio;
+                                if (bp - start <= pageHeightPx && bp > start + 1) best = bp;
+                            }
+                            if (best > 0) end = Math.min(Math.round(best), canvas.height);
+                            if (end <= start + 1) end = start + pageHeightPx;
+                        }
+                        const sliceH = Math.min(end, canvas.height) - start;
+                        if (sliceH < 4) break;
+                        const slice = document.createElement('canvas');
+                        slice.width = canvas.width;
+                        slice.height = sliceH;
+                        const ctx = slice.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, slice.width, slice.height);
+                        ctx.drawImage(canvas, 0, start, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+                        if (!firstPdfPage) pdf.addPage();
+                        firstPdfPage = false;
+                        pdf.addImage(slice, 'PNG', 15, 15, 180, 180 * sliceH / canvas.width, undefined, 'FAST');
+                        slice.width = slice.height = 0;
+                        start += sliceH;
+                    }
+                }
+            } finally {
+                canvas.width = canvas.height = 0;
             }
-            const x = 15 + (180 - w) / 2;
-            pdf.addImage(image, 'PNG', x, 15, w, h, undefined, 'FAST');
         }
-        return new File([pdf.output('blob')], 'ご注文承り書.pdf', { type: 'application/pdf' });
+        checkStale();
+        return new File([pdf.output('blob')], pdfFileNameForOrder(order), { type: 'application/pdf' });
     } finally {
         frame.remove();
     }
@@ -1941,50 +2033,159 @@ async function buildOrderPdfFile(order) {
 
 let preparedSharePdf = null; // { orderId, file }
 let sharePdfToken = 0;
+let standalonePrintState = '';
+let isSharingPdf = false;
 
-function setPrintButtonState(disabled, label) {
+const PRINT_HELP_MESSAGES = {
+    'preparing': '準備しています。少しお待ちください…',
+    'ready': 'このあと出る画面を下に動かして「プリント」を押してください。',
+    'cancelled': 'プリントを中止しました。もう一度「プリントする」を押すとやり直せます。',
+    'share-error': 'プリントの画面を開けませんでした。もう一度「プリントする」を押してください。',
+    'prepare-error': 'プリントの準備ができませんでした。「もう一度ためす」を押してください。それでもできない場合は、アプリを閉じて開き直してください。'
+};
+
+// ホーム画面アプリ用：ボタンと案内文の状態を切り替える（ボタンの文言は prepare-error のときだけ変わる）
+function setStandalonePrintState(state, message) {
     const btn = document.getElementById('download-pdf-btn');
-    btn.disabled = disabled;
+    const help = document.getElementById('print-help');
     const labelEl = btn.querySelector('.btn-label');
-    if (labelEl) labelEl.textContent = label;
+    standalonePrintState = state;
+    btn.disabled = (state === 'preparing' || state === 'sharing');
+    if (labelEl) labelEl.textContent = state === 'prepare-error' ? 'もう一度ためす' : 'プリントする';
+    if (!help) return;
+    // sharing は直前の案内文をそのまま残す
+    if (state !== 'sharing') {
+        const text = message || PRINT_HELP_MESSAGES[state] || '';
+        help.textContent = '';
+        if (state === 'preparing') {
+            const spinner = document.createElement('span');
+            spinner.className = 'print-help-spinner';
+            spinner.setAttribute('aria-hidden', 'true');
+            help.appendChild(spinner);
+        }
+        help.appendChild(document.createTextNode(text));
+    }
+    help.hidden = false;
+}
+
+// 通常表示（Safari・PC）用：従来どおりのボタン表示に戻す
+function resetPrintButtonForBrowser() {
+    const btn = document.getElementById('download-pdf-btn');
+    const help = document.getElementById('print-help');
+    const labelEl = btn.querySelector('.btn-label');
+    standalonePrintState = '';
+    btn.disabled = false;
+    if (labelEl) labelEl.textContent = '印刷';
+    if (help) { help.hidden = true; help.textContent = ''; }
+}
+
+function showToast(message) {
+    const old = document.querySelector('.app-toast');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'app-toast';
+    el.setAttribute('role', 'status');
+    el.textContent = message;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
+
+function withTimeout(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 async function prepareSharePdf(order, token) {
     try {
-        await loadPdfLibs();
-        const file = await buildOrderPdfFile(order);
+        const isStale = () => token !== sharePdfToken;
+        // 同時に1つだけ作る（古いものは最初の確認で素早く中止される）
+        const job = pdfJobChain.catch(() => {}).then(async () => {
+            if (isStale()) throw makeStaleError();
+            await loadPdfLibs();
+            return buildOrderPdfFile(order, isStale);
+        });
+        pdfJobChain = job;
+        const file = await withTimeout(job, 20000);
         if (token !== sharePdfToken) return;
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            preparedSharePdf = { orderId: order.id, file };
-            setPrintButtonState(false, '共有してプリント');
-        } else {
-            preparedSharePdf = null;
-            setPrintButtonState(false, '印刷');
+        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+            throw new Error('このアプリではPDFを共有できません');
         }
+        preparedSharePdf = { orderId: order.id, file };
+        setStandalonePrintState('ready');
     } catch (err) {
+        if (err && err.name === 'StalePdfJob') return;
         if (token !== sharePdfToken) return;
         console.warn('PDFの準備に失敗しました', err);
         preparedSharePdf = null;
-        setPrintButtonState(false, '印刷');
+        setStandalonePrintState('prepare-error');
     }
 }
 
 function startSharePdfPreparationIfStandalone(order) {
     const token = ++sharePdfToken;
     preparedSharePdf = null;
+    isSharingPdf = false;
     if (!isStandaloneApp()) {
-        setPrintButtonState(false, '印刷');
+        resetPrintButtonForBrowser();
         return;
     }
-    setPrintButtonState(true, 'PDFを準備中…');
+    setStandalonePrintState('preparing');
     prepareSharePdf(order, token);
 }
 
-// プレビューが閉じられたら準備済みPDFを破棄する（どの閉じ方でも）
+// ホーム画面アプリでの「プリントする」ボタン
+function handleStandalonePrintClick(order) {
+    if (standalonePrintState === 'prepare-error') {
+        startSharePdfPreparationIfStandalone(order);
+        return;
+    }
+    if (!preparedSharePdf || preparedSharePdf.orderId !== order.id || isSharingPdf) return; // 準備中などは何もしない
+    const token = sharePdfToken;
+    isSharingPdf = true;
+    setStandalonePrintState('sharing');
+    // navigator.share は、タップの処理の中で同期的に呼ぶ必要がある
+    const onSuccess = () => {
+        let recorded = true;
+        try {
+            updateOrder(order.id, { isPrinted: true });
+            renderOrdersList();
+        } catch (e) {
+            recorded = false;
+            console.warn('印刷済みの記録に失敗しました', e);
+        }
+        printModal.classList.remove('active');
+        showToast(recorded ? '印刷済みにしました' : 'プリントの画面を開きました（印刷済みの記録はできませんでした）');
+    };
+    const onError = err => {
+        // プレビューが閉じられた・別の注文に変わった場合は、新しい画面の状態に触れない
+        if (token !== sharePdfToken || !printModal.classList.contains('active')) return;
+        if (err && err.name === 'AbortError') setStandalonePrintState('cancelled');
+        else if (err && err.name === 'InvalidStateError') setStandalonePrintState('ready'); // すでに共有画面が開いている
+        else setStandalonePrintState('share-error');
+    };
+    navigator.share({ files: [preparedSharePdf.file] })
+        .then(onSuccess, onError)
+        .finally(() => {
+            if (token === sharePdfToken) isSharingPdf = false;
+        });
+}
+
+// プレビューが閉じられたら準備済みPDFを破棄し、ボタンと案内文も戻す（どの閉じ方でも）
 new MutationObserver(() => {
     if (!printModal.classList.contains('active')) {
         sharePdfToken++;
         preparedSharePdf = null;
+        isSharingPdf = false;
+        const help = document.getElementById('print-help');
+        if (help) { help.hidden = true; help.textContent = ''; }
+        const btn = document.getElementById('download-pdf-btn');
+        const labelEl = btn.querySelector('.btn-label');
+        btn.disabled = false;
+        standalonePrintState = '';
+        if (labelEl) labelEl.textContent = isStandaloneApp() ? 'プリントする' : '印刷';
     }
 }).observe(printModal, { attributes: true, attributeFilter: ['class'] });
 
@@ -1996,7 +2197,7 @@ backToListBtn.addEventListener('click', () => {
 });
 
 document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', () => btn.closest('.modal').classList.remove('active')));
-document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); }));
+document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', (e) => { if (e.target === modal && modal.id !== 'print-modal') modal.classList.remove('active'); }));
 
 const settingStoreNameInput = document.getElementById('setting-store-name');
 const settingStorePhoneInput = document.getElementById('setting-store-phone');
