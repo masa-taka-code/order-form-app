@@ -2086,3 +2086,11 @@ body.modal-open { overflow: hidden; }
   .app-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 1100; background: var(--text-primary); color: #fff; padding: 12px 20px; border-radius: 999px; font-weight: 600; max-width: calc(100% - 32px); text-align: center; box-shadow: var(--shadow); }
 }
 @media print { .app-toast { display: none !important; } }
+
+/* ===== 保存した注文のハイライト v1.11 ===== */
+@media screen {
+  .order-card.just-saved { box-shadow: 0 0 0 4px var(--primary-color), var(--shadow); animation: savedPulse 1.2s ease-out 2; }
+  .order-card.just-saved:focus { outline: none; }
+  @keyframes savedPulse { from { background: var(--primary-soft); } }
+  @media (prefers-reduced-motion: reduce) { .order-card.just-saved { animation: none; } }
+}

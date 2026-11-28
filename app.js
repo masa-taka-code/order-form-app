@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.11.0';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -465,8 +465,10 @@ orderForm.addEventListener('submit', (e) => {
         return;
     }
 
+    let savedId = null;
     if (editingOrderId) {
         // 編集モード：既存の注文を更新
+        savedId = editingOrderId;
         const stored = getOrders().find(o => o.id === editingOrderId);
         const update = { ...data };
         let message = '注文を更新しました！';
@@ -487,14 +489,41 @@ orderForm.addEventListener('submit', (e) => {
         hideEditBanner();
     } else {
         // 新規モード
-        addOrder(data);
+        const added = addOrder(data);
+        savedId = added && added.id;
         alert('注文を保存しました！');
     }
     orderForm.reset();
     initForm();
-    // 保存後は画面の先頭へ戻す
-    window.scrollTo(0, 0);
+    // 保存後は「詳細」タブへ移り、保存した注文のカードを表示してハイライトする
+    showSavedOrderInList(savedId);
 });
+
+// 保存した注文を「詳細」タブで見える位置に出してハイライトする（画面の状態のみ変更。保存データは触らない）
+function showSavedOrderInList(id) {
+    const findCard = () => id == null ? null :
+        Array.from(ordersList.querySelectorAll('.order-card')).find(c => c.dataset.id === String(id));
+    switchTab('list', { scroll: 'top' });
+    if (!findCard()) {
+        // 検索・絞り込みで隠れている場合は、画面上の絞り込みだけ解除して描画し直す
+        searchInput.value = '';
+        filterStatus.value = 'all';
+        filterPrint.value = 'all';
+        renderOrdersList();
+    }
+    // 新規入力タブに戻ったとき、空のフォームの先頭が見えるようにする
+    tabScrollPositions.input = 0;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        const card = findCard();
+        if (!card) { window.scrollTo(0, 0); return; }
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+        card.classList.add('just-saved');
+        card.setAttribute('tabindex', '-1');
+        card.focus({ preventScroll: true });
+        setTimeout(() => card.classList.remove('just-saved'), 4000);
+    }));
+}
 
 // ブラウザ標準の検証（required）で止まった場合も、固定ヘッダーに隠れない位置へスクロール
 customerNameInput.addEventListener('invalid', (e) => {
