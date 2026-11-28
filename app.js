@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.11.1';
+const APP_VERSION = '1.11.2';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1859,13 +1859,24 @@ function canSharePdfFiles() {
 }
 
 const scriptLoadPromises = {};
+let scriptLoadRetry = 0;
 function loadScriptOnce(src) {
     if (!scriptLoadPromises[src]) {
         scriptLoadPromises[src] = new Promise((resolve, reject) => {
             const el = document.createElement('script');
-            el.src = src;
-            el.onload = () => resolve();
-            el.onerror = () => { delete scriptLoadPromises[src]; reject(new Error('読み込みに失敗: ' + src)); };
+            // やり直しのときは、応答のないまま止まった前回の読み込みを使い回さないよう別の要求にする
+            el.src = scriptLoadRetry > 0 ? `${src}?retry=${scriptLoadRetry}` : src;
+            // 失敗・応答なしのときは記録を消して、次回（「もう一度ためす」）に読み込み直せるようにする
+            const fail = (message) => {
+                clearTimeout(timer);
+                delete scriptLoadPromises[src];
+                scriptLoadRetry++;
+                el.remove();
+                reject(new Error(message + ': ' + src));
+            };
+            const timer = setTimeout(() => fail('読み込みが応答しません'), 30000);
+            el.onload = () => { clearTimeout(timer); resolve(); };
+            el.onerror = () => fail('読み込みに失敗');
             document.head.appendChild(el);
         });
     }
