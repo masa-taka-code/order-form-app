@@ -2,7 +2,7 @@
 
 // アプリのバージョン（設定画面の一番下に表示。更新するたびに書き換える）
 // 不具合修正: 末尾を上げる（1.1.0 → 1.1.1）／機能追加: 真ん中を上げる（1.1.0 → 1.2.0）
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.13.1';
 const APP_UPDATED = '2026-11-28';
 
 // シンプルな線アイコン。形は Lucide（https://lucide.dev, v0.460.0）の公式アイコンをそのまま使用。
@@ -1015,7 +1015,7 @@ function showPrintPreview(id) {
                 margin: 0 auto;
                 background: white;
                 color: black;
-                font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+                font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴシック", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
                 font-size: 11pt;
                 line-height: 1.5;
                 position: relative;
@@ -1129,9 +1129,9 @@ const PAPER_LAYOUT_CSS = `
             .total-main { font-size: 15pt; font-weight: bold; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; margin: 4px 0; padding: 3px 0; }
             /* チェックボックス */
             .check-group { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
-            .check-item { display: inline-flex; align-items: center; gap: 3px; margin-right: 0; }
-            .check-box { width: 1em; height: 1em; line-height: 1em; font-size: inherit; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px solid #000; }
-            .check-mark { font-size: 0.85em; line-height: 1; }
+            .check-item { display: inline-flex; align-items: center; gap: 0.3em; margin-right: 0; }
+            .check-box { position: relative; display: inline-block; width: 1em; height: 1em; border: 1px solid #000; box-sizing: border-box; vertical-align: -0.15em; flex: none; }
+            .check-box.is-checked::after { content: ""; position: absolute; left: 50%; top: 42%; width: 0.28em; height: 0.55em; border-right: 0.12em solid #000; border-bottom: 0.12em solid #000; transform: translate(-50%, -50%) rotate(45deg); box-sizing: border-box; }
 `;
 
 // 合計欄のHTML（ラベルと金額を別spanにして列を揃える）
@@ -1176,7 +1176,7 @@ const PAPER_BASE_CSS = `        /* === リセット === */
             margin: 0 auto;
             background: white;
             color: black;
-            font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+            font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴシック", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
             font-size: 11pt;
             line-height: 1.5;
             position: relative;
@@ -1379,7 +1379,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
         : '<tr><td colspan="4">（商品なし）</td></tr>';
 
     // チェックボックス生成ヘルパー
-    const checkbox = (checked) => `<span class="check-box">${checked ? '<span class="check-mark">✓</span>' : ''}</span>`;
+    const checkbox = (checked) => `<span class="check-box${checked ? ' is-checked' : ''}" aria-hidden="true"></span>`;
 
     // 代金オプション（未収を削除）
     const paymentType = order.paymentType || order.paymentMethod || '';
@@ -1413,7 +1413,7 @@ function generatePrintHtmlForPaper(order, titleLabel = '店舗控え') {
                 padding: 15mm; /* 余白確保 */
                 background: white;
                 box-sizing: border-box;
-                font-family: sans-serif;
+                font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴシック", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
                 position: relative;
             }
             .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 12px; letter-spacing: 2px; }
@@ -1530,7 +1530,7 @@ function generateCustomerCopyHtml(order) {
         : '<tr><td colspan="4">（商品なし）</td></tr>';
 
     // チェックボックス生成ヘルパー
-    const checkbox = (checked) => `<span class="check-box">${checked ? '<span class="check-mark">✓</span>' : ''}</span>`;
+    const checkbox = (checked) => `<span class="check-box${checked ? ' is-checked' : ''}" aria-hidden="true"></span>`;
 
     // 合計明細（ラベルと金額を2列に揃える）
     const totalDetailsHtml = buildTotalDetailsHtml(order);
@@ -1551,7 +1551,7 @@ function generateCustomerCopyHtml(order) {
                 padding: 15mm;
                 background: white;
                 box-sizing: border-box;
-                font-family: sans-serif;
+                font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴシック", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
                 position: relative;
             }
             .paper-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 12px; letter-spacing: 2px; }

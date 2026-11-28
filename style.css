@@ -257,11 +257,14 @@ textarea {
   border-radius: 50%;
 }
 
+/* チェックの印は文字（✓）ではなく線で描く（端末の書体に左右されず、必ずマスの中央に来る） */
 .checkbox-label input:checked::after {
-  content: '✓';
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
+  width: 6px;
+  height: 11px;
+  border-right: 2.5px solid white;
+  border-bottom: 2.5px solid white;
+  box-sizing: border-box;
+  transform: translate(-50%, -62%) rotate(45deg);
 }
 
 .radio-label:has(input:checked),
@@ -860,7 +863,7 @@ textarea {
   padding: 15mm;
   background: white;
   color: black;
-  font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴシック", "Yu Gothic", "YuGothic", "Meiryo", sans-serif;
   font-size: 11pt;
   line-height: 1.5;
 }
@@ -1675,15 +1678,14 @@ textarea {
 }
 
 .check-box {
+  position: relative;
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 1em;
+  height: 1em;
   border: 1px solid #000;
-  line-height: 12px;
-  text-align: center;
-  font-size: 10px;
-  margin-right: 3px;
-  vertical-align: middle;
+  box-sizing: border-box;
+  vertical-align: -0.15em;
+  flex: none;
 }
 
 /* 編集中バナー（画面表示のみ） */
